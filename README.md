@@ -1,7 +1,5 @@
 <div align="center">
 
-# Família Alicerce
-
 **O site da igreja e o painel da equipe que mantém ele vivo.**
 
 Agenda, avisos, ministérios, galeria e culto ao vivo, tudo editado por quem está no dia a dia, sem precisar de programador.
