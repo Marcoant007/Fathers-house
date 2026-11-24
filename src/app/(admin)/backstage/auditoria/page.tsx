@@ -17,6 +17,7 @@ const ENTITY_LABELS: Record<AuditEntity, string> = {
   SERVICE: "Culto",
   SITE_SETTINGS: "Aparência",
   STAFF_MEMBER: "Equipe",
+  FAQ: "Tira-dúvidas",
 };
 
 const ACTION_LABELS: Record<AuditAction, string> = {

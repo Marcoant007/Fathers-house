@@ -13,6 +13,7 @@ import {
   Clock,
   UserCog,
   History,
+  MessageCircleQuestion,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "cn";
@@ -33,6 +34,7 @@ const NAV_ITEMS: {
   { href: "/backstage/aparencia", label: "Aparência", icon: Palette, show: (p) => p.isEditor },
   { href: "/backstage/ministerios", label: "Ministérios", icon: Users, show: (p) => p.isEditor },
   { href: "/backstage/cultos", label: "Cultos", icon: Clock, show: (p) => p.isEditor },
+  { href: "/backstage/tira-duvidas", label: "Tira-dúvidas", icon: MessageCircleQuestion, show: (p) => p.isEditor },
   { href: "/backstage/equipe", label: "Equipe", icon: UserCog, show: (p) => p.isAdmin },
   { href: "/backstage/auditoria", label: "Auditoria", icon: History, show: (p) => p.isAdmin },
 ];

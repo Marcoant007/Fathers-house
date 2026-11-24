@@ -60,6 +60,7 @@ enum AuditEntity {
   SERVICE
   SITE_SETTINGS
   STAFF_MEMBER
+  FAQ
 
   @@map("audit_entity")
 }
@@ -278,6 +279,31 @@ model Album {
   createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
 
   @@map("albums")
+}
+
+// ---------------------------------------------------------------------
+// Tira-dúvidas do site (bot sem IA)
+// Cultos, agenda, endereço, contato, Pix e ministérios o bot já responde
+// sozinho com os dados acima. Aqui ficam só as outras perguntas, com resposta
+// pronta escrita pela equipe. O bot casa a pergunta do visitante pelas
+// palavras-chave (sem acento/maiúscula) — ver src/lib/assistant/engine.ts.
+// ---------------------------------------------------------------------
+
+model FaqEntry {
+  id           String   @id @default(uuid()) @db.Uuid
+  question     String   // ex.: "O que é o GFC?" — também vira botão se isFeatured
+  answer       String
+  keywords     String[] // ex.: ["gfc", "grupo familiar", "celula"]
+  showWhatsapp Boolean  @default(false) @map("show_whatsapp") // botão do WhatsApp da igreja na resposta
+  linkLabel    String?  @map("link_label")
+  linkUrl      String?  @map("link_url") // "/agenda" ou "https://..."
+  isFeatured   Boolean  @default(false) @map("is_featured") // aparece em "Perguntas frequentes"
+  active       Boolean  @default(true)
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  @@map("faq_entries")
 }
 
 // ---------------------------------------------------------------------
