@@ -127,6 +127,48 @@ export function AparenciaForm({ settings }: { settings: SiteSettings }) {
           </FormField>
         </section>
 
+        <section className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-extrabold">E-mails de contato</h2>
+            <p className="text-sm text-soft">
+              Aparecem no rodapé de todas as páginas e no tira-dúvidas. Deixe vazio o que a igreja não usa.
+            </p>
+          </div>
+          <FormField label="E-mail da Secretaria" htmlFor="secretaryEmail" error={fieldErrors?.secretaryEmail}>
+            <input
+              id="secretaryEmail"
+              name="secretaryEmail"
+              type="email"
+              placeholder="ex.: secretaria@familiaalicerce.com.br"
+              defaultValue={settings.secretaryEmail ?? ""}
+              className={fieldInputClass(!!fieldErrors?.secretaryEmail)}
+            />
+            <p className="text-sm text-soft">Para dúvidas gerais, visitas e pedidos.</p>
+          </FormField>
+          <FormField label="E-mail do Financeiro" htmlFor="financeEmail" error={fieldErrors?.financeEmail}>
+            <input
+              id="financeEmail"
+              name="financeEmail"
+              type="email"
+              placeholder="ex.: financeiro@familiaalicerce.com.br"
+              defaultValue={settings.financeEmail ?? ""}
+              className={fieldInputClass(!!fieldErrors?.financeEmail)}
+            />
+            <p className="text-sm text-soft">Também aparece na página Contribua, para dúvidas sobre dízimos e ofertas.</p>
+          </FormField>
+          <FormField label="E-mail do Administrativo" htmlFor="adminEmail" error={fieldErrors?.adminEmail}>
+            <input
+              id="adminEmail"
+              name="adminEmail"
+              type="email"
+              placeholder="ex.: administrativo@familiaalicerce.com.br"
+              defaultValue={settings.adminEmail ?? ""}
+              className={fieldInputClass(!!fieldErrors?.adminEmail)}
+            />
+            <p className="text-sm text-soft">Para parcerias, fornecedores e assuntos da administração.</p>
+          </FormField>
+        </section>
+
         <p className="rounded-2xl bg-sand px-5 py-4 text-sm">
           Procurando a live do culto ou os links do YouTube e Spotify? Agora eles ficam no menu{" "}
           <Link href="/backstage/live" className="font-extrabold underline">

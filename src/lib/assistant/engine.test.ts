@@ -62,6 +62,7 @@ const K: AssistantKnowledge = {
     youtube: null,
     spotify: null,
     pixKey: "pix@igreja.org",
+    emails: { secretary: "secretaria@igreja.org", finance: "financeiro@igreja.org", admin: null },
   },
   live: { videoUrl: null, audioUrl: null },
 };
@@ -222,5 +223,22 @@ describe("getSuggestions / servicesLines", () => {
         { name: "Noite", weekday: 0, time: "18:00" },
       ])
     ).toEqual(["• Domingo: 9h30 (Manhã), 18h (Noite)"]);
+  });
+});
+
+describe("e-mails de contato", () => {
+  it("lista os e-mails cadastrados quando perguntam o e-mail", () => {
+    const r = answer("qual o email da secretaria?", K, NOW);
+    expect(r.source).toBe("contact");
+    expect(r.text).toContain("• Secretaria: secretaria@igreja.org");
+    expect(r.text).toContain("• Financeiro: financeiro@igreja.org");
+    expect(r.text.includes("Administrativo")).toBe(false); // não cadastrado
+    expect(r.links.map((l) => l.href)).toContain("mailto:secretaria@igreja.org");
+  });
+
+  it("mostra o e-mail do financeiro junto com o Pix", () => {
+    const r = answer("como faço pra dar o dízimo?", K, NOW);
+    expect(r.source).toBe("give");
+    expect(r.text).toContain("Dúvidas sobre contribuição: financeiro@igreja.org");
   });
 });

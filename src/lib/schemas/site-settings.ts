@@ -2,6 +2,7 @@ import { z } from "zod";
 import { HEX_RE } from "@/lib/theme";
 
 const optionalText = (max: number) => z.string().trim().max(max).optional().or(z.literal(""));
+const optionalEmail = z.string().trim().max(120).email("E-mail inválido").optional().or(z.literal(""));
 const optionalUrl = (max: number) =>
   z.string().trim().max(max).url("Link inválido").optional().or(z.literal(""));
 
@@ -12,6 +13,9 @@ export const siteSettingsSchema = z.object({
   whatsapp: optionalText(30),
   pixKey: optionalText(140),
   instagram: optionalUrl(200),
+  secretaryEmail: optionalEmail,
+  financeEmail: optionalEmail,
+  adminEmail: optionalEmail,
   // Vem do upload (URL do Vercel Blob); vazio = foto padrão.
   heroImagePath: optionalUrl(2048),
   aboutImagePath: optionalUrl(2048),

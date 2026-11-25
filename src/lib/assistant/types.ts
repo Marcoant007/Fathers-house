@@ -52,6 +52,7 @@ export type AssistantKnowledge = {
     youtube: string | null;
     spotify: string | null;
     pixKey: string | null;
+    emails: { secretary: string | null; finance: string | null; admin: string | null };
   };
   live: { videoUrl: string | null; audioUrl: string | null };
 };

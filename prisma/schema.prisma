@@ -375,6 +375,11 @@ model SiteSettings {
   youtube     String? // canal (a live de cada culto fica em LiveStream)
   spotify     String? // perfil/podcast da igreja no Spotify
 
+  // E-mails de contato (rodapé, Contribua e tira-dúvidas)
+  secretaryEmail String? @map("secretary_email")
+  financeEmail   String? @map("finance_email")
+  adminEmail     String? @map("admin_email")
+
   // Fotos da Home (Aparência). null = foto padrão (src/lib/site-config.ts).
   heroImagePath  String? @map("hero_image_path")
   aboutImagePath String? @map("about_image_path")

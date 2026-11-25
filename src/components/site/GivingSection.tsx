@@ -10,10 +10,13 @@ import { cn } from "cn";
 export function GivingSection({
   projects,
   pixKey,
+  financeEmail = null,
   headingAs: Heading = "h2",
 }: {
   projects: CarouselProject[];
   pixKey: string | null;
+  /** E-mail do Financeiro (Aparência), pra dúvidas sobre contribuição. */
+  financeEmail?: string | null;
   headingAs?: "h1" | "h2";
 }) {
   const hasProjects = projects.length > 0;
@@ -36,6 +39,14 @@ export function GivingSection({
           </p>
         </div>
         {pixKey ? <PixCard pixKey={pixKey} /> : null}
+        {financeEmail ? (
+          <p className="flex flex-col text-[15px] text-soft">
+            Dúvidas sobre contribuição? Escreva para o Financeiro:
+            <a href={`mailto:${financeEmail}`} className="font-extrabold break-words text-ink hover:underline">
+              {financeEmail}
+            </a>
+          </p>
+        ) : null}
       </div>
 
       {hasProjects ? <ProjectCarousel projects={projects} /> : null}

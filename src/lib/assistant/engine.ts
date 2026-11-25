@@ -218,21 +218,41 @@ function addressReply(k: AssistantKnowledge): AssistantReply {
   };
 }
 
+/** "• Secretaria: secretaria@…" — uma linha por e-mail cadastrado em Aparência. */
+function emailLines(k: AssistantKnowledge): string[] {
+  const { secretary, finance, admin } = k.contact.emails;
+  return [
+    secretary ? `• Secretaria: ${secretary}` : null,
+    finance ? `• Financeiro: ${finance}` : null,
+    admin ? `• Administrativo: ${admin}` : null,
+  ].filter((line): line is string => line !== null);
+}
+
 function contactReply(k: AssistantKnowledge): AssistantReply {
   const links = whatsappLink(k);
+  if (k.contact.emails.secretary) {
+    links.push({ label: "E-mail da Secretaria", href: `mailto:${k.contact.emails.secretary}` });
+  }
   if (k.contact.instagram) links.push({ label: "Instagram", href: k.contact.instagram });
-  const text = k.contact.whatsapp
-    ? `Fale com a gente pelo WhatsApp: ${k.contact.whatsapp}`
-    : "Você encontra nossos contatos na página Visite-nos.";
+
+  const parts: string[] = [];
+  if (k.contact.whatsapp) parts.push(`Fale com a gente pelo WhatsApp: ${k.contact.whatsapp}`);
+  const emails = emailLines(k);
+  if (emails.length > 0) parts.push(`E-mails:\n${emails.join("\n")}`);
+  const text = parts.length > 0 ? parts.join("\n\n") : "Você encontra nossos contatos na página Visite-nos.";
+
   if (links.length === 0) links.push({ label: "Visite-nos", href: "/visite-nos" });
   return { text, links, source: "contact" };
 }
 
 function giveReply(k: AssistantKnowledge): AssistantReply {
+  const finance = k.contact.emails.finance;
+  let text = k.contact.pixKey
+    ? `Você pode contribuir pelo Pix.\nChave: ${k.contact.pixKey}`
+    : "Veja como contribuir na página Contribua.";
+  if (finance) text += `\n\nDúvidas sobre contribuição: ${finance}`;
   return {
-    text: k.contact.pixKey
-      ? `Você pode contribuir pelo Pix.\nChave: ${k.contact.pixKey}`
-      : "Veja como contribuir na página Contribua.",
+    text,
     links: [{ label: "Formas de contribuir", href: "/contribua" }],
     source: "give",
   };
@@ -296,7 +316,8 @@ const TOPICS: Topic[] = [
   {
     id: "contact",
     keywords: ["whatsapp", "whats", "zap", "wpp", "contato", "telefone", "numero", "ligar", "falar com alguem",
-      "falar com voces", "secretaria", "atendimento", "instagram", "insta", "redes sociais"],
+      "falar com voces", "secretaria", "atendimento", "instagram", "insta", "redes sociais", "email", "e-mail",
+      "e mail", "administrativo", "administracao", "financeiro"],
     reply: contactReply,
   },
   {

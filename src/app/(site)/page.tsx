@@ -114,7 +114,7 @@ export default async function Home() {
 
       {settings.pixKey || projects.length > 0 ? (
         <section id="contribua" className="scroll-mt-6 py-12 md:py-28">
-          <GivingSection projects={projects} pixKey={settings.pixKey} />
+          <GivingSection projects={projects} pixKey={settings.pixKey} financeEmail={settings.financeEmail} />
         </section>
       ) : null}
     </>

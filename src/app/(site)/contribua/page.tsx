@@ -10,7 +10,12 @@ export default async function ContribuaPage() {
 
   return (
     <section className="flex flex-col gap-6 py-12 md:py-20">
-      <GivingSection projects={projects} pixKey={settings.pixKey} headingAs="h1" />
+      <GivingSection
+        projects={projects}
+        pixKey={settings.pixKey}
+        financeEmail={settings.financeEmail}
+        headingAs="h1"
+      />
       {settings.pixKey ? null : <p className="container-site text-soft">Chave Pix ainda não cadastrada.</p>}
     </section>
   );

@@ -68,6 +68,11 @@ export async function getAssistantKnowledge(): Promise<AssistantKnowledge> {
       youtube: settings?.youtube ?? null,
       spotify: settings?.spotify ?? null,
       pixKey: settings?.pixKey ?? null,
+      emails: {
+        secretary: settings?.secretaryEmail ?? null,
+        finance: settings?.financeEmail ?? null,
+        admin: settings?.adminEmail ?? null,
+      },
     },
     live: { videoUrl: featuredLive?.live.youtubeUrl ?? null, audioUrl: featuredLive?.live.spotifyUrl ?? null },
   };
