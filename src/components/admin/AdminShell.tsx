@@ -5,15 +5,22 @@ export function AdminShell({
   actorName,
   roleLabel,
   permissions,
+  newRegistrations,
 }: {
   children: React.ReactNode;
   actorName: string;
   roleLabel: string;
   permissions: SidebarPermissions;
+  newRegistrations?: number;
 }) {
   return (
     <div className="flex min-h-screen bg-sand">
-      <Sidebar actorName={actorName} roleLabel={roleLabel} permissions={permissions} />
+      <Sidebar
+        actorName={actorName}
+        roleLabel={roleLabel}
+        permissions={permissions}
+        newRegistrations={newRegistrations}
+      />
       <main className="flex-1 px-6 py-8 md:px-12 md:py-10">{children}</main>
     </div>
   );

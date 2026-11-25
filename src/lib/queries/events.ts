@@ -13,6 +13,16 @@ export async function getUpcomingEvents(limit = 3) {
   });
 }
 
+/** Faixa "Programação" da Home: os próximos em ordem de data (sem priorizar destaque). */
+export async function getTickerEvents(limit = 8) {
+  return prisma.event.findMany({
+    where: { status: "PUBLISHED", endsAt: { gt: new Date() } },
+    orderBy: { startsAt: "asc" },
+    select: { id: true, title: true, slug: true, startsAt: true, endsAt: true },
+    take: limit,
+  });
+}
+
 export async function getEventsByCategory(categorySlug?: string) {
   return prisma.event.findMany({
     where: {
@@ -36,6 +46,7 @@ export async function getPastEvents(limit = 6) {
   return prisma.event.findMany({
     where: { status: "PUBLISHED", endsAt: { lte: new Date() } },
     orderBy: { endsAt: "desc" },
+    include: { category: true },
     take: limit,
   });
 }

@@ -18,6 +18,9 @@ const ENTITY_LABELS: Record<AuditEntity, string> = {
   SITE_SETTINGS: "Aparência",
   STAFF_MEMBER: "Equipe",
   FAQ: "Tira-dúvidas",
+  REGISTRATION: "Inscrição",
+  LIVE_STREAM: "Live",
+  GIVING_PROJECT: "Projeto",
 };
 
 const ACTION_LABELS: Record<AuditAction, string> = {
@@ -33,6 +36,7 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   ROLE_GRANT: "Concedeu papel",
   ROLE_REVOKE: "Removeu papel",
   SETTINGS_CHANGE: "Alterou config.",
+  EXPORT: "Exportou",
 };
 
 const ENTITY_VALUES = Object.keys(ENTITY_LABELS) as AuditEntity[];

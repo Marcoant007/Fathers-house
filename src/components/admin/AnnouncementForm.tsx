@@ -11,16 +11,11 @@ import {
   updateAnnouncement,
   type AnnouncementActionState,
 } from "@/lib/actions/announcements";
+import { toSaoPauloInput } from "@/lib/datetime";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 type AnnouncementWithCategory = Prisma.AnnouncementGetPayload<{ include: { category: true } }>;
 
-function toLocalInput(date: Date | null | undefined) {
-  if (!date) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(
-    date.getUTCHours()
-  )}:${pad(date.getUTCMinutes())}`;
-}
 
 export function AnnouncementForm({
   announcement,
@@ -35,9 +30,13 @@ export function AnnouncementForm({
 }) {
   const router = useRouter();
   const action = announcement ? updateAnnouncement.bind(null, announcement.id) : createAnnouncement;
-  const [intent, setIntent] = useState<"draft" | "submit" | "publish">("draft");
-  const boundAction = (prev: AnnouncementActionState, formData: FormData) => action(intent, prev, formData);
+  // Qual botão foi clicado vem no próprio envio (name="intent" nos botões).
+  const boundAction = (prev: AnnouncementActionState, formData: FormData) => {
+    const intent = formData.get("intent");
+    return action(intent === "publish" || intent === "submit" ? intent : "draft", prev, formData);
+  };
   const [state, formAction, pending] = useActionState(boundAction, undefined);
+  const { formProps, fieldErrors } = useFormSubmit(state, formAction);
 
   useEffect(() => {
     if (state?.redirectTo) router.push(state.redirectTo);
@@ -54,7 +53,7 @@ export function AnnouncementForm({
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
-      <form action={formAction} className="flex flex-col gap-6">
+      <form {...formProps} className="flex flex-col gap-6">
         {announcement?.reviewNote ? (
           <div className="rounded-2xl border-2 border-danger/30 bg-danger/5 px-5 py-4 text-[15px] text-ink">
             <b>Devolvido pela mídia:</b> {announcement.reviewNote}
@@ -62,13 +61,13 @@ export function AnnouncementForm({
         ) : null}
         {state?.error ? <p className="text-sm font-bold text-danger">{state.error}</p> : null}
 
-        <FormField label="Título" htmlFor="title" error={state?.fieldErrors?.title}>
+        <FormField label="Título" htmlFor="title" error={fieldErrors?.title}>
           <input
             id="title"
             name="title"
             defaultValue={announcement?.title}
             onChange={(e) => setPreview((p) => ({ ...p, title: e.target.value }))}
-            className={fieldInputClass(!!state?.fieldErrors?.title)}
+            className={fieldInputClass(!!fieldErrors?.title)}
             required
           />
         </FormField>
@@ -134,23 +133,23 @@ export function AnnouncementForm({
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <FormField label="Publicar em" htmlFor="publishAt" error={state?.fieldErrors?.publishAt}>
+          <FormField label="Publicar em" htmlFor="publishAt" error={fieldErrors?.publishAt}>
             <input
               id="publishAt"
               name="publishAt"
               type="datetime-local"
-              defaultValue={toLocalInput(announcement?.publishAt ?? new Date())}
-              className={fieldInputClass(!!state?.fieldErrors?.publishAt)}
+              defaultValue={toSaoPauloInput(announcement?.publishAt ?? new Date())}
+              className={fieldInputClass(!!fieldErrors?.publishAt)}
               required
             />
           </FormField>
-          <FormField label="Sair do ar em (opcional)" htmlFor="unpublishAt" error={state?.fieldErrors?.unpublishAt}>
+          <FormField label="Sair do ar em (opcional)" htmlFor="unpublishAt" error={fieldErrors?.unpublishAt}>
             <input
               id="unpublishAt"
               name="unpublishAt"
               type="datetime-local"
-              defaultValue={toLocalInput(announcement?.unpublishAt)}
-              className={fieldInputClass(!!state?.fieldErrors?.unpublishAt)}
+              defaultValue={toSaoPauloInput(announcement?.unpublishAt)}
+              className={fieldInputClass(!!fieldErrors?.unpublishAt)}
             />
           </FormField>
         </div>
@@ -159,7 +158,8 @@ export function AnnouncementForm({
           <button
             type="submit"
             disabled={pending}
-            onClick={() => setIntent(isEditor ? "publish" : "submit")}
+            name="intent"
+            value={isEditor ? "publish" : "submit"}
             className="rounded-full bg-ink px-8 py-4 text-[15px] font-extrabold text-paper disabled:opacity-50"
           >
             {isEditor ? "Publicar aviso" : "Enviar para aprovação"}
@@ -167,7 +167,8 @@ export function AnnouncementForm({
           <button
             type="submit"
             disabled={pending}
-            onClick={() => setIntent("draft")}
+            name="intent"
+            value="draft"
             className="rounded-full border-2 border-ink px-8 py-4 text-[15px] font-extrabold disabled:opacity-50"
           >
             Salvar rascunho

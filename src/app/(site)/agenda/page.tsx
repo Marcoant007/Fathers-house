@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { EventImage } from "@/components/site/EventImage";
 import { Eyebrow } from "@/components/site/Eyebrow";
 import { CategoryFilter } from "@/components/site/CategoryFilter";
 import { EventRow } from "@/components/site/EventRow";
 import { getEventsByCategory, getEventCategories, getPastEvents } from "@/lib/queries/events";
 import { formatEventMoment } from "@/lib/format";
+import { getServices } from "@/lib/queries/services";
+import { groupServices, sortByWeekday } from "@/lib/service-groups";
+import { WeeklyServices } from "@/components/site/WeeklyServices";
 
 export const metadata: Metadata = {
   title: "Agenda",
@@ -15,11 +20,13 @@ export default async function AgendaPage({
   searchParams: Promise<{ categoria?: string }>;
 }) {
   const { categoria } = await searchParams;
-  const [events, categories, pastEvents] = await Promise.all([
+  const [events, categories, pastEvents, services] = await Promise.all([
     getEventsByCategory(categoria),
     getEventCategories(),
     getPastEvents(6),
+    getServices(),
   ]);
+  const weekly = sortByWeekday(groupServices(services), services);
 
   return (
     <>
@@ -35,7 +42,13 @@ export default async function AgendaPage({
         </div>
       </section>
 
+      {/* Com filtro de categoria, mostra só os eventos daquela categoria. */}
+      {categoria ? null : <WeeklyServices groups={weekly} />}
+
       <section className="container-site flex flex-col gap-5 pt-14">
+        {!categoria && weekly.length > 0 ? (
+          <h2 className="text-xl font-black tracking-tight uppercase">Eventos</h2>
+        ) : null}
         {events.length > 0 ? (
           events.map((event) => <EventRow key={event.id} event={event} />)
         ) : (
@@ -44,20 +57,27 @@ export default async function AgendaPage({
       </section>
 
       {pastEvents.length > 0 ? (
-        <section className="container-site flex flex-col gap-4 pt-14 pb-16">
-          <h2 className="text-xl font-black tracking-tight text-soft uppercase">Já aconteceram</h2>
-          <div className="flex flex-col gap-4 md:flex-row">
+        <section className="container-site flex flex-col gap-5 pt-14 pb-16">
+          <h2 className="text-xl font-black tracking-tight uppercase">Já aconteceram</h2>
+          <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {pastEvents.map((event) => (
-              <div
-                key={event.id}
-                className="flex flex-1 items-center justify-between gap-4 rounded-2xl bg-sand px-7 py-5 text-[15px] text-soft"
-              >
-                <span>
-                  <b>{event.title}</b> · {formatEventMoment(event.endsAt)}
-                </span>
-              </div>
+              <li key={event.id}>
+                <Link
+                  href={`/agenda/${event.slug}`}
+                  className="group flex h-full flex-col overflow-hidden rounded-3xl border border-line bg-card hover:border-ink"
+                >
+                  <div className="relative flex h-40 items-center justify-center bg-sand text-sm font-bold text-soft">
+                    <EventImage event={event} sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw" />
+                  </div>
+                  <div className="flex flex-col gap-1.5 p-6">
+                    {event.category ? <p className="label-caps text-soft">{event.category.name}</p> : null}
+                    <p className="text-lg font-extrabold group-hover:underline">{event.title}</p>
+                    <p className="text-sm text-soft">{formatEventMoment(event.startsAt)}</p>
+                  </div>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       ) : null}
     </>

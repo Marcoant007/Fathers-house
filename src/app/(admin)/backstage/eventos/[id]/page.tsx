@@ -13,6 +13,10 @@ import { approveEvent, rejectEvent, deleteEvent } from "@/lib/actions/events";
 import { getAllCategories } from "@/lib/queries/categories";
 import { getMinistries } from "@/lib/queries/ministries";
 import { getEntityAuditLog } from "@/lib/queries/audit";
+import { canSeeRegistrations, takenSpots } from "@/lib/registrations";
+import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import { QrCode, Users } from "lucide-react";
 
 export const metadata: Metadata = { title: "Editar evento" };
 
@@ -33,6 +37,14 @@ export default async function EditarEventoPage({ params }: { params: Promise<{ i
     getEntityAuditLog("EVENT", id),
   ]);
   const ministries = editor ? allMinistries : allMinistries.filter((m) => hasRole(actor, "LIDER", m.id));
+
+  const showRegistrations = event.registrationMode === "INTERNAL" && canSeeRegistrations(actor, event.ministryId);
+  const [people, registrationCount] = showRegistrations
+    ? await Promise.all([
+        takenSpots(event.id),
+        prisma.eventRegistration.count({ where: { eventId: event.id, status: "CONFIRMED" } }),
+      ])
+    : [0, 0];
 
   return (
     <div className="flex flex-col gap-6">
@@ -76,6 +88,42 @@ export default async function EditarEventoPage({ params }: { params: Promise<{ i
             label: "Detalhes",
             content: <EventForm event={event} categories={categories} ministries={ministries} isEditor={editor} />,
           },
+          ...(showRegistrations
+            ? [
+                {
+                  value: "inscricoes",
+                  label: "Inscrições",
+                  content: (
+                    <div className="flex flex-col gap-5">
+                      <p className="text-[15px]">
+                        <b>{registrationCount}</b> {registrationCount === 1 ? "inscrição" : "inscrições"} ·{" "}
+                        <b>{people}</b> {people === 1 ? "pessoa" : "pessoas"}
+                        {event.capacity ? ` de ${event.capacity} vagas` : " (sem limite de vagas)"}
+                      </p>
+                      {event.status !== "PUBLISHED" ? (
+                        <p className="text-[15px] text-soft">
+                          O formulário só abre pro público depois que o evento for publicado.
+                        </p>
+                      ) : null}
+                      <div className="flex flex-wrap gap-3">
+                        <Link
+                          href={`/backstage/inscricoes/${event.id}`}
+                          className="flex min-h-11 items-center gap-2 rounded-full bg-ink px-5 text-[15px] font-extrabold text-paper"
+                        >
+                          <Users size={18} strokeWidth={2} aria-hidden="true" /> Ver inscritos
+                        </Link>
+                        <a
+                          href={`/backstage/inscricoes/${event.id}/qrcode?formato=png`}
+                          className="flex min-h-11 items-center gap-2 rounded-full border-2 border-ink px-5 text-[15px] font-extrabold"
+                        >
+                          <QrCode size={18} strokeWidth={2} aria-hidden="true" /> Baixar QR code
+                        </a>
+                      </div>
+                    </div>
+                  ),
+                },
+              ]
+            : []),
           { value: "historico", label: "Histórico", content: <AuditTimeline entries={auditLog} /> },
         ]}
       />

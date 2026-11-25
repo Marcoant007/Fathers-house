@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { Ministry } from "@/generated/prisma/client";
 import { Button } from "@/components/site/Button";
+import { MinistryIcon } from "@/components/site/MinistryIcon";
 
 export function MinistryCard({ ministry }: { ministry: Ministry }) {
   const whatsappUrl = ministry.whatsapp
@@ -24,7 +25,12 @@ export function MinistryCard({ ministry }: { ministry: Ministry }) {
         </div>
       ) : null}
       <div className="flex flex-col gap-3 p-8">
-        <h3 className="text-xl font-extrabold">{ministry.name}</h3>
+        <div className="flex items-center gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent text-on-accent">
+            <MinistryIcon ministry={ministry} size={22} />
+          </span>
+          <h3 className="text-xl font-extrabold">{ministry.name}</h3>
+        </div>
         {ministry.description ? <p className="text-[15px] leading-[1.55] text-soft">{ministry.description}</p> : null}
         {ministry.schedule ? <p className="label-caps text-soft">{ministry.schedule}</p> : null}
         {whatsappUrl ? (

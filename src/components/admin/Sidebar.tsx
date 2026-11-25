@@ -14,12 +14,15 @@ import {
   UserCog,
   History,
   MessageCircleQuestion,
+  ClipboardList,
+  Radio,
+  HandHeart,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "cn";
 import { Logo } from "@/components/site/Logo";
 
-export type SidebarPermissions = { isAdmin: boolean; isEditor: boolean };
+export type SidebarPermissions = { isAdmin: boolean; isEditor: boolean; isLeader: boolean };
 
 const NAV_ITEMS: {
   href: string;
@@ -31,6 +34,9 @@ const NAV_ITEMS: {
   { href: "/backstage/eventos", label: "Eventos", icon: CalendarDays, show: () => true },
   { href: "/backstage/avisos", label: "Avisos", icon: Megaphone, show: () => true },
   { href: "/backstage/galeria", label: "Galeria", icon: Images, show: () => true },
+  { href: "/backstage/live", label: "Live", icon: Radio, show: (p) => p.isEditor },
+  { href: "/backstage/inscricoes", label: "Inscrições", icon: ClipboardList, show: (p) => p.isEditor || p.isLeader },
+  { href: "/backstage/projetos", label: "Projetos", icon: HandHeart, show: (p) => p.isEditor },
   { href: "/backstage/aparencia", label: "Aparência", icon: Palette, show: (p) => p.isEditor },
   { href: "/backstage/ministerios", label: "Ministérios", icon: Users, show: (p) => p.isEditor },
   { href: "/backstage/cultos", label: "Cultos", icon: Clock, show: (p) => p.isEditor },
@@ -43,10 +49,13 @@ export function Sidebar({
   actorName,
   roleLabel,
   permissions,
+  newRegistrations = 0,
 }: {
   actorName: string;
   roleLabel: string;
   permissions: SidebarPermissions;
+  /** Inscrições que a equipe ainda não abriu (FA-33). */
+  newRegistrations?: number;
 }) {
   const pathname = usePathname();
 
@@ -72,6 +81,17 @@ export function Sidebar({
             >
               <Icon size={18} strokeWidth={2} aria-hidden="true" />
               {item.label}
+              {item.href === "/backstage/inscricoes" && newRegistrations > 0 ? (
+                <span
+                  className={cn(
+                    "ml-auto rounded-full px-2 py-0.5 text-xs font-extrabold",
+                    active ? "bg-ink text-paper" : "bg-accent text-on-accent"
+                  )}
+                >
+                  {newRegistrations}
+                  <span className="sr-only"> novas inscrições</span>
+                </span>
+              ) : null}
             </Link>
           );
         })}

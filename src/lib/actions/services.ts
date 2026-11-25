@@ -13,6 +13,7 @@ function readForm(formData: FormData) {
     name: String(formData.get("name") ?? ""),
     weekday: String(formData.get("weekday") ?? ""),
     time: String(formData.get("time") ?? ""),
+    description: String(formData.get("description") ?? ""),
     sortOrder: String(formData.get("sortOrder") ?? "0"),
   };
 }
@@ -32,7 +33,13 @@ export async function createService(_prev: ServiceActionState, formData: FormDat
 
   await prisma.$transaction(async (tx) => {
     const created = await tx.service.create({
-      data: { name: data.name, weekday: data.weekday, startsAt: toTimeDate(data.time), sortOrder: data.sortOrder },
+      data: {
+        name: data.name,
+        weekday: data.weekday,
+        startsAt: toTimeDate(data.time),
+        description: data.description || null,
+        sortOrder: data.sortOrder,
+      },
     });
     await audit(tx, actor, { action: "CREATE", entityType: "SERVICE", entityId: created.id, entityLabel: created.name });
   });
@@ -58,7 +65,13 @@ export async function updateService(
     const before = await tx.service.findUniqueOrThrow({ where: { id } });
     const after = await tx.service.update({
       where: { id },
-      data: { name: data.name, weekday: data.weekday, startsAt: toTimeDate(data.time), sortOrder: data.sortOrder },
+      data: {
+        name: data.name,
+        weekday: data.weekday,
+        startsAt: toTimeDate(data.time),
+        description: data.description || null,
+        sortOrder: data.sortOrder,
+      },
     });
     await audit(tx, actor, {
       action: "UPDATE",

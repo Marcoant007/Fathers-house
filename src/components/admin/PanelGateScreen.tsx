@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
 import { fieldInputClass } from "@/components/admin/FormField";
 import { verifyPanelAccess, type PanelGateState } from "@/lib/actions/panel-gate";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 export function PanelGateScreen() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, formAction, pending] = useActionState<PanelGateState, FormData>(verifyPanelAccess, undefined);
+  const { formProps } = useFormSubmit(state, formAction);
 
   useEffect(() => {
     if (state === undefined) return;
@@ -31,7 +33,7 @@ export function PanelGateScreen() {
           <p className="text-[15px] text-soft">Cole o token de acesso da equipe pra continuar.</p>
         </div>
 
-        <form action={formAction} className="flex flex-col gap-4">
+        <form {...formProps} className="flex flex-col gap-4">
           {state?.error ? <p className="text-center text-sm font-bold text-danger">{state.error}</p> : null}
           <input
             ref={inputRef}

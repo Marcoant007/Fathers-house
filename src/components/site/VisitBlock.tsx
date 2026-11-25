@@ -41,7 +41,7 @@ export function VisitBlock({
           <iframe
             title="Mapa até o endereço"
             src={`https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`}
-            className="h-full min-h-70 w-full border-0 grayscale md:min-h-105"
+            className="h-full min-h-70 w-full border-0 md:min-h-105"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
           />

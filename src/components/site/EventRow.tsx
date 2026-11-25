@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Prisma } from "@/generated/prisma/client";
-import { Button } from "@/components/site/Button";
+import { RegisterButton } from "@/components/site/RegisterButton";
 import { EventImage } from "@/components/site/EventImage";
 import { formatDateBadge, formatEventMoment } from "@/lib/format";
 
@@ -34,15 +34,7 @@ export function EventRow({ event }: { event: EventWithCategory }) {
           {event.location ? <span>{event.location}</span> : null}
         </div>
       </div>
-      {event.registrationUrl ? (
-        <Button
-          variant="dark"
-          className="shrink-0 self-start px-7 py-4 text-[15px] md:self-auto"
-          render={<a href={event.registrationUrl} target="_blank" rel="noopener noreferrer" />}
-        >
-          Inscreva-se
-        </Button>
-      ) : null}
+      <RegisterButton event={event} className="shrink-0 self-start px-7 py-4 text-[15px] md:self-auto" />
     </article>
   );
 }

@@ -50,6 +50,7 @@ export type AssistantKnowledge = {
     whatsapp: string | null;
     instagram: string | null;
     youtube: string | null;
+    spotify: string | null;
     pixKey: string | null;
   };
   live: { videoUrl: string | null; audioUrl: string | null };

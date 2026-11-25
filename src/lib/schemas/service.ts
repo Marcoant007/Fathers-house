@@ -6,6 +6,7 @@ export const serviceSchema = z.object({
   time: z
     .string()
     .regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Horário inválido"),
+  description: z.string().trim().max(500, "Máximo de 500 caracteres").optional().or(z.literal("")),
   sortOrder: z.coerce.number().int().default(0),
 });
 

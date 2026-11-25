@@ -1,10 +1,12 @@
-import { Button } from "@/components/site/Button";
+import { RegisterButton } from "@/components/site/RegisterButton";
 import { DateBadge } from "@/components/site/DateBadge";
 import { EventImage } from "@/components/site/EventImage";
 import { formatDateBadge, formatEventRange } from "@/lib/format";
 
 type EventCardData = {
   title: string;
+  slug: string;
+  registrationMode?: string | null;
   startsAt: Date;
   endsAt: Date;
   location: string | null;
@@ -25,15 +27,7 @@ export function EventCard({ event }: { event: EventCardData }) {
         <h3 className="text-[22px] font-extrabold">{event.title}</h3>
         <p className="text-[15px] text-soft">{formatEventRange(event.startsAt, event.endsAt)}</p>
         {event.location ? <p className="text-[15px] text-soft">{event.location}</p> : null}
-        {event.registrationUrl ? (
-          <Button
-            variant="dark"
-            className="mt-2 self-start px-6 py-3 text-[15px]"
-            render={<a href={event.registrationUrl} target="_blank" rel="noopener noreferrer" />}
-          >
-            Inscreva-se
-          </Button>
-        ) : null}
+        <RegisterButton event={event} className="mt-2 self-start px-6 py-3 text-[15px]" />
       </div>
     </article>
   );

@@ -26,11 +26,18 @@ export function luminance(hex: string): number {
 /** Cor do texto sobre o destaque: preto em cores claras, branco nas escuras. */
 export const onAccent = (hex: string) => (luminance(hex) > 0.22 ? "#141414" : "#FFFFFF");
 
+/**
+ * Ícone/logo sobre o destaque (ex.: botão do tira-dúvidas): branco sempre que
+ * der o contraste mínimo de 3:1 pra elemento gráfico (WCAG 1.4.11) — fica mais
+ * "marca" que o texto escuro; só em cores claras (amarelo, laranja) vira escuro.
+ */
+export const iconOnAccent = (hex: string) => ((1 + 0.05) / (luminance(hex) + 0.05) >= 3 ? "#FFFFFF" : "#141414");
+
 /** Cor muito clara: avisar no painel. */
 export const isVeryLight = (hex: string) => luminance(hex) > 0.6;
 
 /** Variáveis CSS para aplicar no <html> ou num preview. */
 export function accentVars(hex: string): Record<string, string> {
   const accent = HEX_RE.test(hex) ? hex : DEFAULT_ACCENT;
-  return { "--accent": accent, "--on-accent": onAccent(accent) };
+  return { "--accent": accent, "--on-accent": onAccent(accent), "--on-accent-icon": iconOnAccent(accent) };
 }

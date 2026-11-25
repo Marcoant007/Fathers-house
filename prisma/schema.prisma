@@ -40,13 +40,14 @@ enum AuditAction {
   DELETE
   PUBLISH
   UNPUBLISH
-  SUBMIT      // líder envia para aprovação
+  SUBMIT // líder envia para aprovação
   APPROVE
-  REJECT      // mídia devolve com comentário
+  REJECT // mídia devolve com comentário
   UPLOAD
   ROLE_GRANT
   ROLE_REVOKE
   SETTINGS_CHANGE
+  EXPORT // baixou planilha com dado pessoal (inscritos)
 
   @@map("audit_action")
 }
@@ -61,8 +62,27 @@ enum AuditEntity {
   SITE_SETTINGS
   STAFF_MEMBER
   FAQ
+  REGISTRATION
+  LIVE_STREAM
+  GIVING_PROJECT
 
   @@map("audit_entity")
+}
+
+// Como o evento recebe inscrições (FA-28).
+enum RegistrationMode {
+  NONE // sem inscrição
+  EXTERNAL // link de fora (Google Forms etc.) em Event.registrationUrl
+  INTERNAL // formulário do próprio site, salvo em EventRegistration
+
+  @@map("registration_mode")
+}
+
+enum RegistrationStatus {
+  CONFIRMED
+  CANCELLED
+
+  @@map("registration_status")
 }
 
 // ---------------------------------------------------------------------
@@ -79,9 +99,9 @@ model StaffMember {
   email       String    @unique
   imageUrl    String?   @map("image_url")
   active      Boolean   @default(true) // false = sem acesso, histórico preservado
-  lastSeenAt  DateTime? @db.Timestamptz(6) @map("last_seen_at")
-  createdAt   DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt   DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
+  lastSeenAt  DateTime? @map("last_seen_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   roles        StaffRole[] @relation("RoleOwner")
   rolesGranted StaffRole[] @relation("RoleGrantedBy")
@@ -103,13 +123,13 @@ model StaffMember {
 model StaffRole {
   id            String       @id @default(uuid()) @db.Uuid
   role          Role
-  staffMemberId String       @db.Uuid @map("staff_member_id")
+  staffMemberId String       @map("staff_member_id") @db.Uuid
   staffMember   StaffMember  @relation("RoleOwner", fields: [staffMemberId], references: [id], onDelete: Cascade)
-  ministryId    String?      @db.Uuid @map("ministry_id")
+  ministryId    String?      @map("ministry_id") @db.Uuid
   ministry      Ministry?    @relation(fields: [ministryId], references: [id], onDelete: Cascade)
-  grantedById   String?      @db.Uuid @map("granted_by_id")
+  grantedById   String?      @map("granted_by_id") @db.Uuid
   grantedBy     StaffMember? @relation("RoleGrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
-  createdAt     DateTime     @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([staffMemberId, role, ministryId])
   @@index([ministryId])
@@ -125,17 +145,17 @@ model AuditLog {
   entityType  AuditEntity @map("entity_type")
   entityId    String      @map("entity_id") // id do item afetado (texto: aceita uuid ou "1" do SiteSettings)
   entityLabel String?     @map("entity_label") // ex.: título do evento no momento da ação
-  changes     Json?       // { campo: { from, to } } no UPDATE; snapshot no CREATE/DELETE
-  note        String?     // ex.: comentário da devolução
+  changes     Json? // { campo: { from, to } } no UPDATE; snapshot no CREATE/DELETE
+  note        String? // ex.: comentário da devolução
 
-  actorId      String?      @db.Uuid @map("actor_id")
+  actorId      String?      @map("actor_id") @db.Uuid
   actor        StaffMember? @relation(fields: [actorId], references: [id], onDelete: SetNull)
   actorClerkId String       @map("actor_clerk_id")
   actorName    String       @map("actor_name")
 
   ip        String?
   userAgent String?  @map("user_agent")
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([entityType, entityId, createdAt(sort: Desc)])
   @@index([actorId, createdAt(sort: Desc)])
@@ -153,7 +173,7 @@ model Category {
   name      String
   slug      String   @unique
   sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   events        Event[]
   announcements Announcement[]
@@ -166,11 +186,12 @@ model Ministry {
   name        String
   slug        String   @unique
   description String?
-  schedule    String?  // ex.: "Sábados, 19h"
-  whatsapp    String?  // ex.: "5527999999999", pro botão wa.me do líder
+  schedule    String? // ex.: "Sábados, 19h"
+  whatsapp    String? // ex.: "5527999999999", pro botão wa.me do líder
   coverPath   String?  @map("cover_path")
+  icon        String? // chave de src/lib/ministry-icons.ts; null = automático pelo nome
   sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   leaders       StaffRole[]
   events        Event[]
@@ -181,9 +202,10 @@ model Ministry {
 
 model Service {
   id        String   @id @default(uuid()) @db.Uuid
-  name      String   // ex.: "Culto da Família"
+  name      String // ex.: "Culto da Família"
   weekday   Int      @db.SmallInt // 0 = domingo ... 6 = sábado
-  startsAt  DateTime @db.Time(0) @map("starts_at")
+  startsAt  DateTime @map("starts_at") @db.Time(0)
+  description String? // aparece na Agenda, em "Toda semana"
   sortOrder Int      @default(0) @map("sort_order")
 
   @@map("services")
@@ -199,28 +221,36 @@ model Event {
   slug            String        @unique
   description     String?
   coverPath       String?       @map("cover_path")
-  startsAt        DateTime      @db.Timestamptz(6) @map("starts_at")
-  endsAt          DateTime      @db.Timestamptz(6) @map("ends_at")
+  startsAt        DateTime      @map("starts_at") @db.Timestamptz(6)
+  endsAt          DateTime      @map("ends_at") @db.Timestamptz(6)
   location        String?
   registrationUrl String?       @map("registration_url")
   isFeatured      Boolean       @default(false) @map("is_featured")
   status          ContentStatus @default(DRAFT)
   reviewNote      String?       @map("review_note") // motivo da devolução pela mídia
-  publishedAt     DateTime?     @db.Timestamptz(6) @map("published_at")
+  publishedAt     DateTime?     @map("published_at") @db.Timestamptz(6)
 
-  categoryId  String?      @db.Uuid @map("category_id")
+  // Inscrições (FA-28). Vagas contam pessoas (soma de partySize); null = sem limite.
+  registrationMode     RegistrationMode    @default(NONE) @map("registration_mode")
+  capacity             Int?
+  registrationClosesAt DateTime?           @map("registration_closes_at") @db.Timestamptz(6) // null = até o início
+  askPartySize         Boolean             @default(false) @map("ask_party_size")
+  askFirstTime         Boolean             @default(false) @map("ask_first_time")
+  registrations        EventRegistration[]
+
+  categoryId  String?      @map("category_id") @db.Uuid
   category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  ministryId  String?      @db.Uuid @map("ministry_id")
+  ministryId  String?      @map("ministry_id") @db.Uuid
   ministry    Ministry?    @relation(fields: [ministryId], references: [id], onDelete: SetNull)
-  createdById String?      @db.Uuid @map("created_by_id")
+  createdById String?      @map("created_by_id") @db.Uuid
   createdBy   StaffMember? @relation("EventCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedById String?      @db.Uuid @map("updated_by_id")
+  updatedById String?      @map("updated_by_id") @db.Uuid
   updatedBy   StaffMember? @relation("EventUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   albums Album[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([status, startsAt])
   @@map("events")
@@ -231,22 +261,22 @@ model Announcement {
   title       String
   body        String?
   imagePath   String?       @map("image_path")
-  publishAt   DateTime      @default(now()) @db.Timestamptz(6) @map("publish_at")
-  unpublishAt DateTime?     @db.Timestamptz(6) @map("unpublish_at")
+  publishAt   DateTime      @default(now()) @map("publish_at") @db.Timestamptz(6)
+  unpublishAt DateTime?     @map("unpublish_at") @db.Timestamptz(6)
   status      ContentStatus @default(DRAFT)
   reviewNote  String?       @map("review_note")
 
-  categoryId  String?      @db.Uuid @map("category_id")
+  categoryId  String?      @map("category_id") @db.Uuid
   category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  ministryId  String?      @db.Uuid @map("ministry_id")
+  ministryId  String?      @map("ministry_id") @db.Uuid
   ministry    Ministry?    @relation(fields: [ministryId], references: [id], onDelete: SetNull)
-  createdById String?      @db.Uuid @map("created_by_id")
+  createdById String?      @map("created_by_id") @db.Uuid
   createdBy   StaffMember? @relation("AnnouncementCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedById String?      @db.Uuid @map("updated_by_id")
+  updatedById String?      @map("updated_by_id") @db.Uuid
   updatedBy   StaffMember? @relation("AnnouncementUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([status, publishAt])
   @@map("announcements")
@@ -267,18 +297,42 @@ model Album {
   id        String    @id @default(uuid()) @db.Uuid
   title     String
   slug      String    @unique
-  takenOn   DateTime? @db.Date @map("taken_on")
+  takenOn   DateTime? @map("taken_on") @db.Date
   driveUrl  String?   @map("drive_url")
   coverPath String?   @map("cover_path")
 
-  eventId     String?      @db.Uuid @map("event_id")
+  eventId     String?      @map("event_id") @db.Uuid
   event       Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  createdById String?      @db.Uuid @map("created_by_id")
+  createdById String?      @map("created_by_id") @db.Uuid
   createdBy   StaffMember? @relation("AlbumCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("albums")
+}
+
+// Inscrição feita pelo visitante no formulário do site (FA-29). Dado pessoal:
+// só mídia/admin e o líder do ministério do evento veem, e é apagado 90 dias
+// depois do fim do evento (src/lib/registrations.ts, LGPD).
+model EventRegistration {
+  id          String             @id @default(uuid()) @db.Uuid
+  eventId     String             @map("event_id") @db.Uuid
+  event       Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name        String
+  phone       String // só dígitos, com DDI: "5527999990000"
+  partySize   Int                @default(1) @map("party_size")
+  firstTime   Boolean?           @map("first_time")
+  status      RegistrationStatus @default(CONFIRMED)
+  source      String             @default("site") // "site" | "qr"
+  checkedInAt DateTime?          @map("checked_in_at") @db.Timestamptz(6)
+  seenAt      DateTime?          @map("seen_at") @db.Timestamptz(6) // equipe já viu (contador de novos)
+  consentAt   DateTime           @map("consent_at") @db.Timestamptz(6)
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([eventId, phone])
+  @@index([eventId, createdAt])
+  @@index([seenAt])
+  @@map("event_registrations")
 }
 
 // ---------------------------------------------------------------------
@@ -291,7 +345,7 @@ model Album {
 
 model FaqEntry {
   id           String   @id @default(uuid()) @db.Uuid
-  question     String   // ex.: "O que é o GFC?" — também vira botão se isFeatured
+  question     String // ex.: "O que é o GFC?" — também vira botão se isFeatured
   answer       String
   keywords     String[] // ex.: ["gfc", "grupo familiar", "celula"]
   showWhatsapp Boolean  @default(false) @map("show_whatsapp") // botão do WhatsApp da igreja na resposta
@@ -300,8 +354,8 @@ model FaqEntry {
   isFeatured   Boolean  @default(false) @map("is_featured") // aparece em "Perguntas frequentes"
   active       Boolean  @default(true)
   sortOrder    Int      @default(0) @map("sort_order")
-  createdAt    DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt    DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("faq_entries")
 }
@@ -318,23 +372,57 @@ model SiteSettings {
   whatsapp    String?
   pixKey      String? @map("pix_key")
   instagram   String?
-  youtube     String?
+  youtube     String? // canal (a live de cada culto fica em LiveStream)
+  spotify     String? // perfil/podcast da igreja no Spotify
 
-  // Culto ao vivo em destaque na Home (FA-19/FA-20) — link colado manualmente
-  // toda semana no painel, não integração de API.
-  liveVideoUrl String?   @map("live_video_url")
-  liveAudioUrl String?   @map("live_audio_url")
-  liveAt       DateTime? @db.Timestamptz(6) @map("live_at")
+  // Fotos da Home (Aparência). null = foto padrão (src/lib/site-config.ts).
+  heroImagePath  String? @map("hero_image_path")
+  aboutImagePath String? @map("about_image_path")
 
   // Segunda camada de acesso ao /backstage, além do login do Clerk (ver
   // src/lib/panel-gate.ts). Só o hash fica salvo — o token em texto puro é
   // mostrado uma única vez, no momento em que o admin gera um novo.
   panelAccessTokenHash  String?   @map("panel_access_token_hash")
-  panelAccessTokenSetAt DateTime? @db.Timestamptz(6) @map("panel_access_token_set_at")
+  panelAccessTokenSetAt DateTime? @map("panel_access_token_set_at") @db.Timestamptz(6)
 
-  updatedById String?      @db.Uuid @map("updated_by_id")
+  updatedById String?      @map("updated_by_id") @db.Uuid
   updatedBy   StaffMember? @relation("SettingsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  updatedAt   DateTime     @updatedAt @db.Timestamptz(6) @map("updated_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("site_settings")
+}
+
+// Transmissão de um culto (FA-19/FA-20), cadastrada no menu Live do painel.
+// Link colado à mão (sem API do YouTube). A Home mostra uma só, escolhida por
+// src/lib/live-rules.ts: a que está ao vivo / começa em breve, senão a última.
+model LiveStream {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String // ex.: "Culto da Família — domingo à noite"
+  startsAt    DateTime @map("starts_at") @db.Timestamptz(6)
+  youtubeUrl  String?  @map("youtube_url")
+  spotifyUrl  String?  @map("spotify_url")
+  description String? // tema, pregador…
+  visible     Boolean  @default(true) // false = fica só no painel
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([startsAt])
+  @@map("live_streams")
+}
+
+// Projetos da igreja mostrados no carrossel da seção Contribua (dízimos e
+// ofertas): cada slide é uma foto com título e uma frase. Cadastrados no menu
+// "Projetos" do painel; sortOrder define a ordem (botões Subir/Descer).
+model GivingProject {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String // ex.: "Espaço Gerações"
+  description String? // uma ou duas frases sobre o projeto
+  imagePath   String   @map("image_path") // Vercel Blob ou /projetos/... (public/)
+  visible     Boolean  @default(true) // false = fica só no painel
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([sortOrder])
+  @@map("giving_projects")
 }

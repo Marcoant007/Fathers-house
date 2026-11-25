@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getActor, hasRole, isEditor, audit, diff } from "@/lib/auth-and-audit";
-import { eventSchema } from "@/lib/schemas/event";
+import { eventSchema, type EventFormValues } from "@/lib/schemas/event";
+import { closesAtFromDate } from "@/lib/registration-rules";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
 import { deleteBlobIfExists } from "@/lib/blob";
@@ -31,6 +32,24 @@ function readForm(formData: FormData) {
     ministryId: String(formData.get("ministryId") ?? ""),
     isFeatured: formData.get("isFeatured") === "on",
     description: String(formData.get("description") ?? ""),
+    registrationMode: String(formData.get("registrationMode") ?? "NONE"),
+    capacity: String(formData.get("capacity") ?? ""),
+    registrationClosesOn: String(formData.get("registrationClosesOn") ?? ""),
+    askPartySize: formData.get("askPartySize") === "on",
+    askFirstTime: formData.get("askFirstTime") === "on",
+  };
+}
+
+/** Campos de inscrição do evento, já no formato do banco. */
+function registrationData(data: EventFormValues) {
+  const internal = data.registrationMode === "INTERNAL";
+  return {
+    registrationMode: data.registrationMode,
+    registrationUrl: data.registrationMode === "EXTERNAL" ? data.registrationUrl || null : null,
+    capacity: internal && typeof data.capacity === "number" ? data.capacity : null,
+    registrationClosesAt: internal && data.registrationClosesOn ? closesAtFromDate(data.registrationClosesOn) : null,
+    askPartySize: internal && data.askPartySize,
+    askFirstTime: internal && data.askFirstTime,
   };
 }
 
@@ -75,7 +94,7 @@ export async function createEvent(
         startsAt: data.startsAt,
         endsAt: data.endsAt,
         location: data.location || null,
-        registrationUrl: data.registrationUrl || null,
+        ...registrationData(data),
         categoryId: data.categoryId || null,
         coverPath: data.coverPath || null,
         ministryId: data.ministryId || null,
@@ -147,7 +166,7 @@ export async function updateEvent(
         startsAt: data.startsAt,
         endsAt: data.endsAt,
         location: data.location || null,
-        registrationUrl: data.registrationUrl || null,
+        ...registrationData(data),
         categoryId: data.categoryId || null,
         coverPath: data.coverPath || null,
         ministryId: data.ministryId || null,

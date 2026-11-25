@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CalendarPlus, MapPin } from "lucide-react";
+import Link from "next/link";
+import { CalendarPlus, History, MapPin } from "lucide-react";
 import { Button } from "@/components/site/Button";
 import { DateBadge } from "@/components/site/DateBadge";
+import { RegisterButton } from "@/components/site/RegisterButton";
 import { EventImage } from "@/components/site/EventImage";
 import { getEventBySlug } from "@/lib/queries/events";
 import { formatDateBadge, formatEventMoment } from "@/lib/format";
@@ -28,6 +30,11 @@ export async function generateMetadata({
   };
 }
 
+/** Hora da renderização (fora do corpo do componente, por causa da regra de pureza do React). */
+function renderedAt() {
+  return new Date();
+}
+
 export default async function EventDetailPage({
   params,
 }: {
@@ -38,6 +45,7 @@ export default async function EventDetailPage({
   if (!event) notFound();
 
   const { day, month } = formatDateBadge(event.startsAt);
+  const past = event.endsAt.getTime() <= renderedAt().getTime();
   const mapsHref = event.location
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`
     : null;
@@ -75,29 +83,36 @@ export default async function EventDetailPage({
           ) : null}
 
           {event.description ? (
-            <p className="max-w-2xl text-[17px] leading-[1.65] text-soft">{event.description}</p>
+            <p className="max-w-2xl text-[17px] leading-[1.65] whitespace-pre-line text-soft">{event.description}</p>
           ) : null}
 
-          <div className="mt-2 flex flex-wrap gap-4">
-            {event.registrationUrl ? (
-              <Button
-                variant="accent"
-                render={<a href={event.registrationUrl} target="_blank" rel="noopener noreferrer" />}
-              >
-                Inscreva-se
+          {past ? (
+            <div className="mt-2 flex flex-wrap items-center gap-4">
+              <p className="flex items-center gap-2 rounded-full bg-sand px-4 py-2 text-[15px] font-bold text-soft">
+                <History size={18} strokeWidth={2} aria-hidden="true" />
+                Este evento já aconteceu
+              </p>
+              <Button variant="outline" render={<Link href="/agenda" />}>
+                Ver os próximos eventos
               </Button>
-            ) : null}
-            <Button
-              variant="outline"
-              render={<a href={buildGoogleCalendarUrl(event)} target="_blank" rel="noopener noreferrer" />}
-            >
-              <CalendarPlus size={18} strokeWidth={2} aria-hidden="true" />
-              Adicionar à agenda
-            </Button>
-          </div>
-          <a href={`/agenda/${event.slug}/ics`} className="link-more w-fit">
-            Usar outro app de calendário (.ics)
-          </a>
+            </div>
+          ) : (
+            <>
+              <div className="mt-2 flex flex-wrap gap-4">
+                <RegisterButton event={event} variant="accent" />
+                <Button
+                  variant="outline"
+                  render={<a href={buildGoogleCalendarUrl(event)} target="_blank" rel="noopener noreferrer" />}
+                >
+                  <CalendarPlus size={18} strokeWidth={2} aria-hidden="true" />
+                  Adicionar à agenda
+                </Button>
+              </div>
+              <a href={`/agenda/${event.slug}/ics`} className="link-more w-fit">
+                Usar outro app de calendário (.ics)
+              </a>
+            </>
+          )}
         </div>
       </div>
     </article>

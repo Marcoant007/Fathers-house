@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { inviteMember, type StaffActionState } from "@/lib/actions/staff";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 const ROLE_OPTIONS = [
   { value: "ADMIN", label: "Admin", hint: "Acesso total ao painel, inclusive equipe e auditoria" },
@@ -34,6 +35,7 @@ export function InviteMemberDialog({
   const [open, setOpen] = useState(false);
   const [roles, setRoles] = useState<string[]>([]);
   const [state, formAction, pending] = useActionState<StaffActionState, FormData>(inviteMember, undefined);
+  const { formProps, fieldErrors } = useFormSubmit(state, formAction);
 
   useEffect(() => {
     if (open && state && !state.error) {
@@ -54,20 +56,20 @@ export function InviteMemberDialog({
         <DialogHeader>
           <DialogTitle>Convidar para a equipe</DialogTitle>
         </DialogHeader>
-        <form action={formAction} className="flex flex-col gap-4">
+        <form {...formProps} className="flex flex-col gap-4">
           {state?.error ? <p className="text-sm font-bold text-danger">{state.error}</p> : null}
-          <FormField label="E-mail" htmlFor="email" error={state?.fieldErrors?.email}>
+          <FormField label="E-mail" htmlFor="email" error={fieldErrors?.email}>
             <input
               id="email"
               name="email"
               type="email"
               placeholder="pessoa@exemplo.com"
-              className={fieldInputClass(!!state?.fieldErrors?.email)}
+              className={fieldInputClass(!!fieldErrors?.email)}
               required
             />
           </FormField>
 
-          <FormField label="Papéis" error={state?.fieldErrors?.roles}>
+          <FormField label="Papéis" error={fieldErrors?.roles}>
             <div className="flex flex-col gap-2">
               {ROLE_OPTIONS.map((option) => (
                 <label
@@ -92,11 +94,11 @@ export function InviteMemberDialog({
           </FormField>
 
           {roles.includes("LIDER") ? (
-            <FormField label="Ministério do líder" htmlFor="ministryId" error={state?.fieldErrors?.ministryId}>
+            <FormField label="Ministério do líder" htmlFor="ministryId" error={fieldErrors?.ministryId}>
               <select
                 id="ministryId"
                 name="ministryId"
-                className={fieldInputClass(!!state?.fieldErrors?.ministryId)}
+                className={fieldInputClass(!!fieldErrors?.ministryId)}
                 required
               >
                 <option value="">Escolha um ministério</option>

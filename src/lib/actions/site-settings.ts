@@ -20,10 +20,8 @@ function readForm(formData: FormData) {
     whatsapp: String(formData.get("whatsapp") ?? ""),
     pixKey: String(formData.get("pixKey") ?? ""),
     instagram: String(formData.get("instagram") ?? ""),
-    youtube: String(formData.get("youtube") ?? ""),
-    liveVideoUrl: String(formData.get("liveVideoUrl") ?? ""),
-    liveAudioUrl: String(formData.get("liveAudioUrl") ?? ""),
-    liveAt: String(formData.get("liveAt") ?? ""),
+    heroImagePath: String(formData.get("heroImagePath") ?? ""),
+    aboutImagePath: String(formData.get("aboutImagePath") ?? ""),
   };
 }
 
@@ -54,10 +52,8 @@ export async function updateSiteSettings(
         whatsapp: data.whatsapp || null,
         pixKey: data.pixKey || null,
         instagram: data.instagram || null,
-        youtube: data.youtube || null,
-        liveVideoUrl: data.liveVideoUrl || null,
-        liveAudioUrl: data.liveAudioUrl || null,
-        liveAt: data.liveAt,
+        heroImagePath: data.heroImagePath || null,
+        aboutImagePath: data.aboutImagePath || null,
         updatedBy: { connect: { id: actor.id } },
       },
     });

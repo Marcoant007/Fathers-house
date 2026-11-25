@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { createAlbum, updateAlbum, type AlbumActionState } from "@/lib/actions/albums";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 function toDateInput(date: Date | null | undefined) {
   if (!date) return "";
@@ -40,6 +41,7 @@ export function AlbumDialog({
   const [created, setCreated] = useState<{ id: string; title: string } | null>(null);
   const action = album ? updateAlbum.bind(null, album.id) : createAlbum;
   const [state, formAction, pending] = useActionState<AlbumActionState, FormData>(action, undefined);
+  const { formProps, fieldErrors } = useFormSubmit(state, formAction);
 
   useEffect(() => {
     if (open && state?.id) {
@@ -90,15 +92,15 @@ export function AlbumDialog({
             <DialogHeader>
               <DialogTitle>{album ? "Editar álbum" : "Novo álbum"}</DialogTitle>
             </DialogHeader>
-            <form action={formAction} className="flex flex-col gap-4">
+            <form {...formProps} className="flex flex-col gap-4">
               {state?.error ? <p className="text-sm font-bold text-danger">{state.error}</p> : null}
-              <FormField label="Título" htmlFor="title" error={state?.fieldErrors?.title}>
+              <FormField label="Título" htmlFor="title" error={fieldErrors?.title}>
                 <input
                   id="title"
                   name="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className={fieldInputClass(!!state?.fieldErrors?.title)}
+                  className={fieldInputClass(!!fieldErrors?.title)}
                   required
                 />
               </FormField>
@@ -107,14 +109,14 @@ export function AlbumDialog({
                 <ImageDrop value={coverPath} name="coverPath" pathPrefix="galeria" onChange={setCoverPath} />
               </FormField>
 
-              <FormField label="Link da pasta do Google Drive" htmlFor="driveUrl" error={state?.fieldErrors?.driveUrl}>
+              <FormField label="Link da pasta do Google Drive" htmlFor="driveUrl" error={fieldErrors?.driveUrl}>
                 <input
                   id="driveUrl"
                   name="driveUrl"
                   type="url"
                   placeholder="https://drive.google.com/drive/folders/..."
                   defaultValue={album?.driveUrl ?? ""}
-                  className={fieldInputClass(!!state?.fieldErrors?.driveUrl)}
+                  className={fieldInputClass(!!fieldErrors?.driveUrl)}
                   required
                 />
               </FormField>

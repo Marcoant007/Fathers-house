@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { createFaq, updateFaq, type FaqActionState } from "@/lib/actions/faq";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 function Check({ name, label, hint, defaultChecked }: { name: string; label: string; hint?: string; defaultChecked: boolean }) {
   return (
@@ -40,7 +41,8 @@ export function FaqDialog({
   const [open, setOpen] = useState(false);
   const action = faq ? updateFaq.bind(null, faq.id) : createFaq;
   const [state, formAction, pending] = useActionState<FaqActionState, FormData>(action, undefined);
-  const err = state?.fieldErrors;
+  const { formProps, fieldErrors } = useFormSubmit(state, formAction);
+  const err = fieldErrors;
 
   useEffect(() => {
     if (open && state && !state.error) {
@@ -56,7 +58,7 @@ export function FaqDialog({
         <DialogHeader>
           <DialogTitle>{faq ? "Editar pergunta" : "Nova pergunta"}</DialogTitle>
         </DialogHeader>
-        <form action={formAction} className="flex flex-col gap-4">
+        <form {...formProps} className="flex flex-col gap-4">
           {state?.error ? <p className="text-sm font-bold text-danger">{state.error}</p> : null}
 
           <FormField label="Pergunta" htmlFor="question" error={err?.question}>

@@ -4,6 +4,7 @@ import { Plus, Pencil } from "lucide-react";
 import { isEditor, getActor } from "@/lib/auth-and-audit";
 import { getMinistries } from "@/lib/queries/ministries";
 import { deleteMinistry } from "@/lib/actions/ministries";
+import { MinistryIcon } from "@/components/site/MinistryIcon";
 import { Panel } from "@/components/admin/Panel";
 import { MinistryDialog } from "@/components/admin/MinistryDialog";
 import { DeleteButton } from "@/components/admin/DeleteButton";
@@ -52,7 +53,14 @@ export default async function MinisteriosPage() {
             <tbody>
               {ministries.map((ministry) => (
                 <tr key={ministry.id} className="border-b border-line last:border-0">
-                  <td className="px-6 py-4 font-bold">{ministry.name}</td>
+                  <td className="px-6 py-4 font-bold">
+                    <span className="inline-flex items-center gap-3">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sand">
+                        <MinistryIcon ministry={ministry} size={18} />
+                      </span>
+                      {ministry.name}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 text-soft">{ministry.schedule ?? "—"}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">

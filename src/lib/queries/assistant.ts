@@ -1,6 +1,8 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import type { AssistantKnowledge } from "@/lib/assistant/types";
+import { registrationHref } from "@/lib/registration-rules";
+import { getFeaturedLive } from "@/lib/queries/live";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -10,7 +12,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  */
 export async function getAssistantKnowledge(): Promise<AssistantKnowledge> {
   const now = new Date();
-  const [services, events, ministries, faqs, settings] = await Promise.all([
+  const [services, events, ministries, faqs, settings, featuredLive] = await Promise.all([
     prisma.service.findMany({ orderBy: [{ weekday: "asc" }, { startsAt: "asc" }] }),
     prisma.event.findMany({
       where: { status: "PUBLISHED", endsAt: { gt: now }, startsAt: { lt: new Date(now.getTime() + 120 * DAY_MS) } },
@@ -20,6 +22,7 @@ export async function getAssistantKnowledge(): Promise<AssistantKnowledge> {
     prisma.ministry.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.faqEntry.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }),
     prisma.siteSettings.findUnique({ where: { id: 1 } }),
+    getFeaturedLive(now),
   ]);
 
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -37,7 +40,8 @@ export async function getAssistantKnowledge(): Promise<AssistantKnowledge> {
       startsAt: e.startsAt.toISOString(),
       endsAt: e.endsAt.toISOString(),
       location: e.location,
-      registrationUrl: e.registrationUrl,
+      // formulário do site ("/agenda/x/inscricao") ou link externo — o bot mostra "Fazer inscrição"
+      registrationUrl: registrationHref(e)?.href ?? null,
       description: e.description,
     })),
     ministries: ministries.map((m) => ({
@@ -62,9 +66,10 @@ export async function getAssistantKnowledge(): Promise<AssistantKnowledge> {
       whatsapp: settings?.whatsapp ?? null,
       instagram: settings?.instagram ?? null,
       youtube: settings?.youtube ?? null,
+      spotify: settings?.spotify ?? null,
       pixKey: settings?.pixKey ?? null,
     },
-    live: { videoUrl: settings?.liveVideoUrl ?? null, audioUrl: settings?.liveAudioUrl ?? null },
+    live: { videoUrl: featuredLive?.live.youtubeUrl ?? null, audioUrl: featuredLive?.live.spotifyUrl ?? null },
   };
 }
 

@@ -25,6 +25,14 @@ export async function Footer() {
             </a>
           </>
         ) : null}
+        {settings.spotify ? (
+          <>
+            {" · "}
+            <a href={settings.spotify} target="_blank" rel="noopener noreferrer" className="hover:text-ink">
+              Spotify
+            </a>
+          </>
+        ) : null}
       </span>
       <Link href="/backstage" className="text-soft hover:text-ink">
         Área da equipe

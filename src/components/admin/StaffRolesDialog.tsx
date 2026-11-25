@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { grantRole, revokeRole, type StaffActionState } from "@/lib/actions/staff";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 const ROLE_LABELS = { ADMIN: "Admin", MIDIA: "Mídia", LIDER: "Líder" } as const;
 
@@ -42,6 +43,7 @@ export function StaffRolesDialog({
   const [pendingRevoke, startRevoke] = useTransition();
   const action = grantRole.bind(null, staffMemberId);
   const [state, formAction, pending] = useActionState<StaffActionState, FormData>(action, undefined);
+  const { formProps, fieldErrors } = useFormSubmit(state, formAction);
 
   useEffect(() => {
     if (open && state && !state.error) {
@@ -93,16 +95,16 @@ export function StaffRolesDialog({
           </ul>
         )}
 
-        <form action={formAction} className="flex flex-col gap-4 border-t border-line pt-4">
+        <form {...formProps} className="flex flex-col gap-4 border-t border-line pt-4">
           {state?.error ? <p className="text-sm font-bold text-danger">{state.error}</p> : null}
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Novo papel" htmlFor="role" error={state?.fieldErrors?.role}>
+            <FormField label="Novo papel" htmlFor="role" error={fieldErrors?.role}>
               <select
                 id="role"
                 name="role"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className={fieldInputClass(!!state?.fieldErrors?.role)}
+                className={fieldInputClass(!!fieldErrors?.role)}
               >
                 <option value="">Escolha</option>
                 {Object.entries(ROLE_LABELS).map(([value, label]) => (
@@ -113,8 +115,8 @@ export function StaffRolesDialog({
               </select>
             </FormField>
             {role === "LIDER" ? (
-              <FormField label="Ministério" htmlFor="ministryId" error={state?.fieldErrors?.ministryId}>
-                <select id="ministryId" name="ministryId" className={fieldInputClass(!!state?.fieldErrors?.ministryId)}>
+              <FormField label="Ministério" htmlFor="ministryId" error={fieldErrors?.ministryId}>
+                <select id="ministryId" name="ministryId" className={fieldInputClass(!!fieldErrors?.ministryId)}>
                   <option value="">Escolha</option>
                   {ministries.map((ministry) => (
                     <option key={ministry.id} value={ministry.id}>

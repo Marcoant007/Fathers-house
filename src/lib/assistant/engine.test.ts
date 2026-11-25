@@ -60,6 +60,7 @@ const K: AssistantKnowledge = {
     whatsapp: "+55 27 99999-0000",
     instagram: "https://instagram.com/igreja",
     youtube: null,
+    spotify: null,
     pixKey: "pix@igreja.org",
   },
   live: { videoUrl: null, audioUrl: null },

@@ -253,6 +253,7 @@ function liveReply(k: AssistantKnowledge): AssistantReply {
   if (k.live.videoUrl) links.push({ label: "Assistir", href: k.live.videoUrl });
   if (k.live.audioUrl) links.push({ label: "Ouvir", href: k.live.audioUrl });
   if (k.contact.youtube) links.push({ label: "Canal no YouTube", href: k.contact.youtube });
+  if (k.contact.spotify) links.push({ label: "Spotify da igreja", href: k.contact.spotify });
   if (links.length === 0) {
     return {
       text: `Ainda não temos transmissão cadastrada aqui. Que tal vir pessoalmente?\n${servicesLines(k.services).join("\n")}`,

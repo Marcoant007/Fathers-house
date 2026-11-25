@@ -4,6 +4,7 @@
 :root {
   --accent: #FFC53D;
   --on-accent: #141414;
+  --on-accent-icon: #141414; /* ícone/logo sobre o destaque (src/lib/theme.ts iconOnAccent) */
 
   /* shadcn/ui (painel) apontando para os tokens da marca */
   --background: #F0EEE8;
@@ -46,6 +47,7 @@
   /* Destaque dinâmico */
   --color-accent: var(--accent);
   --color-on-accent: var(--on-accent);
+  --color-on-accent-icon: var(--on-accent-icon);
 
   /* shadcn */
   --color-background: var(--background);
@@ -66,6 +68,14 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Faixa "Programação" da Home (src/components/site/Ticker.tsx): a trilha tem
+     o conteúdo duas vezes, então andar 50% emenda sem pulo. */
+  --animate-ticker: ticker var(--ticker-duration, 40s) linear infinite;
+  @keyframes ticker {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
 }
 
 @layer base {

@@ -27,6 +27,7 @@ function readForm(formData: FormData) {
     schedule: String(formData.get("schedule") ?? ""),
     whatsapp: String(formData.get("whatsapp") ?? ""),
     coverPath: String(formData.get("coverPath") ?? ""),
+    icon: String(formData.get("icon") ?? ""),
     sortOrder: String(formData.get("sortOrder") ?? "0"),
   };
 }
@@ -50,6 +51,7 @@ export async function createMinistry(_prev: MinistryActionState, formData: FormD
         schedule: data.schedule || null,
         whatsapp: data.whatsapp || null,
         coverPath: data.coverPath || null,
+        icon: data.icon || null,
         sortOrder: data.sortOrder,
       },
     });
@@ -85,6 +87,7 @@ export async function updateMinistry(
         schedule: data.schedule || null,
         whatsapp: data.whatsapp || null,
         coverPath: data.coverPath || null,
+        icon: data.icon || null,
         sortOrder: data.sortOrder,
       },
     });

@@ -6,9 +6,9 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, ArrowUpRight, ChevronRight, MessageCircleQuestion, X } from "lucide-react";
+import { ArrowUp, ArrowUpRight, ChevronRight, List, RotateCcw, X } from "lucide-react";
 import { cn } from "cn";
-import { LogoMark } from "@/components/site/Logo";
+import { LogoGlyph, LogoMark } from "@/components/site/Logo";
 import { answer, getSuggestions } from "@/lib/assistant/engine";
 import type { AssistantKnowledge, AssistantLink } from "@/lib/assistant/types";
 
@@ -90,6 +90,23 @@ export function AssistantWidget() {
     setInput("");
   }
 
+  /** Volta a mostrar as perguntas frequentes, sem apagar a conversa. */
+  function showMenu() {
+    setMessages((prev) => [
+      ...prev.map((m) => ({ ...m, showSuggestions: false })),
+      { id: nextId.current++, from: "bot", text: "Escolha outra pergunta ou digite a sua.", showSuggestions: true },
+    ]);
+  }
+
+  /** Limpa a conversa e volta pro começo. */
+  function restart() {
+    setMessages([WELCOME]);
+    setInput("");
+    inputRef.current?.focus();
+  }
+
+  const lastMessage = messages[messages.length - 1];
+
   const suggestions = knowledge ? getSuggestions(knowledge) : [];
 
   return (
@@ -101,12 +118,22 @@ export function AssistantWidget() {
           aria-label="Tira-dúvidas"
           className="fixed right-3 bottom-24 left-3 z-40 flex max-h-[min(620px,calc(100dvh-7.5rem))] flex-col overflow-hidden rounded-2xl border border-line bg-paper shadow-2xl sm:right-5 sm:left-auto sm:w-[390px]"
         >
-          <div className="flex items-center gap-3 bg-ink px-5 py-4 text-paper">
-            <LogoMark onDark className="h-10" />
+          <div className="flex items-center gap-2 bg-ink py-3 pr-2 pl-4 text-paper">
+            <LogoMark onDark className="h-8 shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="font-extrabold">Tira-dúvidas</p>
+              <p className="font-extrabold whitespace-nowrap">Tira-dúvidas</p>
               <p className="truncate text-xs text-soft-dark">Respostas automáticas sobre a igreja</p>
             </div>
+            {messages.length > 1 ? (
+              <button
+                type="button"
+                onClick={restart}
+                className="flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-xs font-extrabold text-soft-dark hover:text-paper"
+              >
+                <RotateCcw size={16} strokeWidth={2.5} aria-hidden="true" />
+                Recomeçar
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => {
@@ -179,6 +206,17 @@ export function AssistantWidget() {
                     ))}
                   </div>
                 ) : null}
+
+                {m === lastMessage && m.from === "bot" && !m.showSuggestions && suggestions.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={showMenu}
+                    className="flex min-h-11 items-center gap-2 self-start rounded-full border-2 border-line bg-card px-4 text-sm font-extrabold hover:border-ink"
+                  >
+                    <List size={16} strokeWidth={2.5} aria-hidden="true" />
+                    Ver outras perguntas
+                  </button>
+                ) : null}
               </div>
             ))}
 
@@ -242,13 +280,10 @@ export function AssistantWidget() {
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         aria-label={open ? "Fechar tira-dúvidas" : "Abrir tira-dúvidas"}
-        className="fixed right-5 bottom-5 z-40 flex size-14 items-center justify-center rounded-full bg-accent text-on-accent shadow-lg ring-4 ring-paper transition-transform hover:scale-105"
+        title={open ? undefined : "Tira-dúvidas"}
+        className="fixed right-5 bottom-5 z-40 flex size-14 items-center justify-center rounded-full bg-accent text-on-accent-icon shadow-lg ring-4 ring-paper transition-transform hover:scale-105"
       >
-        {open ? (
-          <X size={24} strokeWidth={2.5} aria-hidden="true" />
-        ) : (
-          <MessageCircleQuestion size={26} strokeWidth={2.25} aria-hidden="true" />
-        )}
+        {open ? <X size={24} strokeWidth={2.5} aria-hidden="true" /> : <LogoGlyph className="w-9" />}
       </button>
     </>
   );

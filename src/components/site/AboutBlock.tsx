@@ -5,20 +5,26 @@ import { Eyebrow } from "@/components/site/Eyebrow";
 export function AboutBlock({
   title,
   text,
+  imageSrc,
+  isDefaultImage,
 }: {
   title: string;
   text: string;
+  /** Foto escolhida em Aparência (ou a padrão). */
+  imageSrc: string;
+  isDefaultImage: boolean;
 }) {
   return (
     <div className="mx-5 grid grid-cols-1 items-center gap-10 rounded-4xl bg-sand p-8 md:mx-20 md:grid-cols-2 md:gap-20 md:p-20">
       <div className="relative h-65 overflow-hidden rounded-3xl bg-sand-2 md:h-100">
         <Image
-          src="/culto-images/pastor-telmo-martinello-1.jpeg"
-          alt="Líder ministrando durante um culto"
+          src={imageSrc}
+          alt="Momento de culto na Família Alicerce"
           fill
           sizes="(max-width: 768px) calc(100vw - 40px), 45vw"
           quality={90}
-          className="object-cover object-[62%_center]"
+          // A foto padrão tem o pastor à direita; foto nova fica centralizada.
+          className={isDefaultImage ? "object-cover object-[62%_center]" : "object-cover object-center"}
         />
       </div>
       <div className="flex flex-col gap-6">
