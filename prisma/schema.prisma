@@ -48,6 +48,7 @@ enum AuditAction {
   ROLE_REVOKE
   SETTINGS_CHANGE
   EXPORT // baixou planilha com dado pessoal (inscritos)
+  VIEW_SENSITIVE // abriu um dado sensível (ex.: resposta de antecedentes de um voluntário)
 
   @@map("audit_action")
 }
@@ -65,8 +66,21 @@ enum AuditEntity {
   REGISTRATION
   LIVE_STREAM
   GIVING_PROJECT
+  VOLUNTEER
+  MINISTRY_FUNCTION
+  ROSTER_PERIOD
 
   @@map("audit_entity")
+}
+
+enum MaritalStatus {
+  SINGLE // solteiro(a)
+  MARRIED // casado(a)
+  STABLE_UNION // união estável / amasiado(a)
+  DIVORCED // divorciado(a) / separado(a)
+  WIDOWED // viúvo(a)
+
+  @@map("marital_status")
 }
 
 // Como o evento recebe inscrições (FA-28).
@@ -107,12 +121,14 @@ model StaffMember {
   rolesGranted StaffRole[] @relation("RoleGrantedBy")
   auditLogs    AuditLog[]
 
-  events               Event[]        @relation("EventCreatedBy")
-  eventsUpdated        Event[]        @relation("EventUpdatedBy")
-  announcements        Announcement[] @relation("AnnouncementCreatedBy")
-  announcementsUpdated Announcement[] @relation("AnnouncementUpdatedBy")
-  albums               Album[]        @relation("AlbumCreatedBy")
-  settingsUpdates      SiteSettings[] @relation("SettingsUpdatedBy")
+  events               Event[]             @relation("EventCreatedBy")
+  eventsUpdated        Event[]             @relation("EventUpdatedBy")
+  announcements        Announcement[]      @relation("AnnouncementCreatedBy")
+  announcementsUpdated Announcement[]      @relation("AnnouncementUpdatedBy")
+  albums               Album[]             @relation("AlbumCreatedBy")
+  settingsUpdates      SiteSettings[]      @relation("SettingsUpdatedBy")
+  rosterPeriods        RosterPeriod[]      @relation("RosterPeriodCreatedBy")
+  rosterPublications   RosterPublication[]
 
   @@map("staff_members")
 }
@@ -152,6 +168,7 @@ model AuditLog {
   actor        StaffMember? @relation(fields: [actorId], references: [id], onDelete: SetNull)
   actorClerkId String       @map("actor_clerk_id")
   actorName    String       @map("actor_name")
+  actorRoles   String?      @map("actor_roles") // papéis no momento da ação, ex.: "Mídia · Líder (Kids)"
 
   ip        String?
   userAgent String?  @map("user_agent")
@@ -193,20 +210,34 @@ model Ministry {
   sortOrder   Int      @default(0) @map("sort_order")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  leaders       StaffRole[]
-  events        Event[]
-  announcements Announcement[]
+  // Ministério e departamento de voluntariado são o mesmo cadastro (Kids é os
+  // dois; Limpeza só tem escala; Casais só tem página).
+  showOnSite       Boolean @default(true) @map("show_on_site") // aparece em /ministerios e na Home
+  hasRoster        Boolean @default(false) @map("has_roster") // tem equipe de voluntários / escala
+  // Quantas pessoas por culto quando o ministério não tem funções (sugestão de escala).
+  rosterPerService Int     @default(0) @map("roster_per_service") // meta opcional por culto (0 = sem meta)
+
+  leaders            StaffRole[]
+  events             Event[]
+  announcements      Announcement[]
+  functions          MinistryFunction[]
+  memberships        VolunteerMembership[]
+  assignments        RosterAssignment[]
+  rosterSkips        RosterSlotSkip[]
+  rosterPublications RosterPublication[]
 
   @@map("ministries")
 }
 
 model Service {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String // ex.: "Culto da Família"
-  weekday   Int      @db.SmallInt // 0 = domingo ... 6 = sábado
-  startsAt  DateTime @map("starts_at") @db.Time(0)
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String // ex.: "Culto da Família"
+  weekday     Int      @db.SmallInt // 0 = domingo ... 6 = sábado
+  startsAt    DateTime @map("starts_at") @db.Time(0)
   description String? // aparece na Agenda, em "Toda semana"
-  sortOrder Int      @default(0) @map("sort_order")
+  sortOrder   Int      @default(0) @map("sort_order")
+
+  rosterSlots RosterSlot[]
 
   @@map("services")
 }
@@ -247,7 +278,8 @@ model Event {
   updatedById String?      @map("updated_by_id") @db.Uuid
   updatedBy   StaffMember? @relation("EventUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
-  albums Album[]
+  albums      Album[]
+  rosterSlots RosterSlot[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -430,4 +462,244 @@ model GivingProject {
 
   @@index([sortOrder])
   @@map("giving_projects")
+}
+
+// ---------------------------------------------------------------------
+// Voluntários e equipes (Escala dos Ministérios, parte 1)
+// Voluntário NÃO é usuário do painel: é uma pessoa numa lista, reconhecida
+// pelo WhatsApp. Pode estar em vários ministérios e, em cada um, ter várias
+// funções (ex.: Kids → Professor(a) e Segurança).
+// ---------------------------------------------------------------------
+
+enum VolunteerAvailability {
+  WEEK_AND_WEEKEND // "Semana e fins de semana"
+  WEEKEND_ONLY // "Apenas fins de semana"
+  WEEKDAYS_ONLY // "Apenas durante a semana"
+
+  @@map("volunteer_availability")
+}
+
+enum SundayShift {
+  MORNING
+  NIGHT
+  BOTH
+
+  @@map("sunday_shift")
+}
+
+enum MembershipStatus {
+  ACTIVE // está na equipe
+  INTERESTED // marcou na inscrição; o líder ainda não colocou na equipe
+
+  @@map("membership_status")
+}
+
+model Volunteer {
+  id           String                 @id @default(uuid()) @db.Uuid
+  name         String
+  phone        String?                @unique // só dígitos, com 55 (ex.: 5527999990000)
+  availability VolunteerAvailability?
+  sundayShift  SundayShift?           @map("sunday_shift")
+  termSigned   Boolean?               @map("term_signed") // termo de responsabilidade do voluntariado
+
+  // SENSÍVEL: resposta sobre antecedentes criminais do formulário de inscrição.
+  // Fica fora de toda consulta (omit global em src/lib/prisma.ts); só o admin
+  // vê, no "olhinho", e cada visualização vai pra Auditoria.
+  backgroundCheckAnswer String? @map("background_check_answer")
+
+  // Mais detalhes (da planilha / inscrição). Só aparecem em "Editar", pra quem
+  // cuida do ministério da pessoa. Ano de nascimento é opcional (muita gente não
+  // informa); dia e mês bastam pro aniversário.
+  birthDay      Int?           @map("birth_day")
+  birthMonth    Int?           @map("birth_month")
+  birthYear     Int?           @map("birth_year")
+  maritalStatus MaritalStatus? @map("marital_status")
+  city          String?
+  baptized      Boolean?
+  convertedYear Int?           @map("converted_year") // ano (aproximado) da conversão
+
+  notes     String?
+  active    Boolean  @default(true)
+  source    String? // de onde veio: "planilha-voluntariado", "painel"…
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships           VolunteerMembership[]
+  availabilityResponses AvailabilityResponse[]
+  rosterAssignments     RosterAssignment[]
+
+  @@index([name])
+  @@index([birthMonth])
+  @@map("volunteers")
+}
+
+model MinistryFunction {
+  id         String   @id @default(uuid()) @db.Uuid
+  ministryId String   @map("ministry_id") @db.Uuid
+  ministry   Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  name       String // ex.: "Professor(a)", "Som", "Ofertório"
+  sortOrder  Int      @default(0) @map("sort_order")
+  perService Int      @default(0) @map("per_service") // meta opcional por culto (0 = sem meta)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  members     VolunteerMembershipFunction[]
+  assignments RosterAssignment[]
+
+  @@unique([ministryId, name])
+  @@map("ministry_functions")
+}
+
+model VolunteerMembership {
+  id          String           @id @default(uuid()) @db.Uuid
+  volunteerId String           @map("volunteer_id") @db.Uuid
+  volunteer   Volunteer        @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  ministryId  String           @map("ministry_id") @db.Uuid
+  ministry    Ministry         @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  status      MembershipStatus @default(ACTIVE)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  functions VolunteerMembershipFunction[]
+
+  @@unique([volunteerId, ministryId])
+  @@index([ministryId, status])
+  @@map("volunteer_memberships")
+}
+
+model VolunteerMembershipFunction {
+  membershipId String              @map("membership_id") @db.Uuid
+  membership   VolunteerMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  functionId   String              @map("function_id") @db.Uuid
+  function     MinistryFunction    @relation(fields: [functionId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, functionId])
+  @@map("volunteer_membership_functions")
+}
+
+// ---------------------------------------------------------------------
+// Escala dos Ministérios, parte 2: disponibilidade do mês
+// ---------------------------------------------------------------------
+
+// Um mês de escala. O link público é /escala/<month> (ex.: /escala/2026-12):
+// a pessoa digita o WhatsApp, vê os cultos do mês e marca quando pode servir.
+model RosterPeriod {
+  id          String       @id @default(uuid()) @db.Uuid
+  month       String       @unique // "2026-12"
+  closesAt    DateTime     @map("closes_at") @db.Timestamptz(6) // prazo pra responder
+  createdById String?      @map("created_by_id") @db.Uuid
+  createdBy   StaffMember? @relation("RosterPeriodCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  slots        RosterSlot[]
+  responses    AvailabilityResponse[]
+  publications RosterPublication[]
+
+  @@map("roster_periods")
+}
+
+// Cada culto do mês (gerado a partir de Cultos quando o mês é aberto).
+// label é cópia do nome do culto, pra não mudar se o culto for editado depois.
+model RosterSlot {
+  id        String       @id @default(uuid()) @db.Uuid
+  periodId  String       @map("period_id") @db.Uuid
+  period    RosterPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  serviceId String?      @map("service_id") @db.Uuid
+  service   Service?     @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  // Evento do mês (Agenda) que também tem escala: Culto de Jovens, Café com Pastor…
+  eventId   String?      @map("event_id") @db.Uuid
+  event     Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  label     String // ex.: "Culto da Família"
+  startsAt  DateTime     @map("starts_at") @db.Timestamptz(6)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6) // quando entrou na lista do mês
+
+  available   AvailabilityResponseSlot[]
+  assignments RosterAssignment[]
+  skips       RosterSlotSkip[]
+
+  @@unique([periodId, startsAt])
+  @@index([eventId])
+  @@map("roster_slots")
+}
+
+// Resposta de uma pessoa pra um mês (responder de novo substitui a anterior).
+// Quem não responde até o prazo entra como disponível em qualquer data.
+model AvailabilityResponse {
+  id          String       @id @default(uuid()) @db.Uuid
+  periodId    String       @map("period_id") @db.Uuid
+  period      RosterPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  volunteerId String       @map("volunteer_id") @db.Uuid
+  volunteer   Volunteer    @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  note        String? // recado pro líder (opcional)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  slots AvailabilityResponseSlot[]
+
+  @@unique([periodId, volunteerId])
+  @@map("availability_responses")
+}
+
+// Os cultos que a pessoa marcou como "posso servir".
+model AvailabilityResponseSlot {
+  responseId String               @map("response_id") @db.Uuid
+  response   AvailabilityResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  slotId     String               @map("slot_id") @db.Uuid
+  slot       RosterSlot           @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  @@id([responseId, slotId])
+  @@map("availability_response_slots")
+}
+
+// Escala montada (parte 3): quem serve em cada culto, por ministério. Por
+// enquanto é rascunho visto só no painel (prévia).
+model RosterAssignment {
+  id            String            @id @default(uuid()) @db.Uuid
+  slotId        String            @map("slot_id") @db.Uuid
+  slot          RosterSlot        @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  ministryId    String            @map("ministry_id") @db.Uuid
+  ministry      Ministry          @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  volunteerId   String            @map("volunteer_id") @db.Uuid
+  volunteer     Volunteer         @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  functionId    String?           @map("function_id") @db.Uuid
+  function      MinistryFunction? @relation(fields: [functionId], references: [id], onDelete: SetNull)
+  // Função digitada na hora ("Stories", "Recepção da porta"…). Quando bate com
+  // uma função do ministério, fica só o functionId (renomear a função propaga).
+  functionLabel String?           @map("function_label")
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([slotId, ministryId, volunteerId])
+  @@index([ministryId])
+  @@index([volunteerId])
+  @@map("roster_assignments")
+}
+
+/// Ministério que NÃO serve num culto/evento do mês (ex.: Kids no Café com Pastor).
+/// Sem linha aqui = o ministério serve (padrão).
+model RosterSlotSkip {
+  slotId     String     @map("slot_id") @db.Uuid
+  slot       RosterSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  ministryId String     @map("ministry_id") @db.Uuid
+  ministry   Ministry   @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([slotId, ministryId])
+  @@index([ministryId])
+  @@map("roster_slot_skips")
+}
+
+/// Escala do ministério no mês publicada: a equipe vê as próprias datas no link
+/// do mês (/escala/AAAA-MM). Sem linha = ainda é rascunho. Mudanças depois de
+/// publicar aparecem na hora.
+model RosterPublication {
+  periodId      String       @map("period_id") @db.Uuid
+  period        RosterPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  ministryId    String       @map("ministry_id") @db.Uuid
+  ministry      Ministry     @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  publishedAt   DateTime     @default(now()) @map("published_at") @db.Timestamptz(6)
+  publishedById String?      @map("published_by_id") @db.Uuid
+  publishedBy   StaffMember? @relation(fields: [publishedById], references: [id], onDelete: SetNull)
+
+  @@id([periodId, ministryId])
+  @@index([ministryId])
+  @@map("roster_publications")
 }

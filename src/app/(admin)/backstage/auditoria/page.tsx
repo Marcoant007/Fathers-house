@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getActor, hasRole } from "@/lib/auth-and-audit";
+import { getActor, isEditor } from "@/lib/auth-and-audit";
 import { getFilteredAuditLog } from "@/lib/queries/audit";
 import { getStaffMembers } from "@/lib/queries/staff";
 import { Panel } from "@/components/admin/Panel";
@@ -21,6 +21,9 @@ const ENTITY_LABELS: Record<AuditEntity, string> = {
   REGISTRATION: "Inscrição",
   LIVE_STREAM: "Live",
   GIVING_PROJECT: "Projeto",
+  VOLUNTEER: "Voluntário",
+  MINISTRY_FUNCTION: "Função",
+  ROSTER_PERIOD: "Escala do mês",
 };
 
 const ACTION_LABELS: Record<AuditAction, string> = {
@@ -37,6 +40,7 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   ROLE_REVOKE: "Removeu papel",
   SETTINGS_CHANGE: "Alterou config.",
   EXPORT: "Exportou",
+  VIEW_SENSITIVE: "Viu dado sensível",
 };
 
 const ENTITY_VALUES = Object.keys(ENTITY_LABELS) as AuditEntity[];
@@ -56,8 +60,8 @@ export default async function AuditoriaPage({
   searchParams: Promise<{ pessoa?: string; tipo?: string; acao?: string; de?: string; ate?: string }>;
 }) {
   const actor = await getActor();
-  if (!hasRole(actor, "ADMIN")) {
-    return <p className="text-soft">Só admins veem a auditoria.</p>;
+  if (!isEditor(actor)) {
+    return <p className="text-soft">Só Admin e Mídia veem a auditoria.</p>;
   }
 
   const params = await searchParams;

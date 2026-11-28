@@ -14,6 +14,8 @@ const VERB: Record<string, string> = {
   ROLE_GRANT: "concedeu papel em",
   ROLE_REVOKE: "removeu papel de",
   SETTINGS_CHANGE: "alterou",
+  EXPORT: "baixou a planilha de",
+  VIEW_SENSITIVE: "viu a resposta de antecedentes de",
 };
 
 export function AuditTimeline({ entries }: { entries: AuditLog[] }) {
@@ -29,7 +31,10 @@ export function AuditTimeline({ entries }: { entries: AuditLog[] }) {
             <b>{entry.actorName}</b> {VERB[entry.action] ?? entry.action.toLowerCase()}{" "}
             {entry.entityLabel ? <span className="font-bold">{entry.entityLabel}</span> : null}
           </p>
-          <p className="text-sm text-soft">{formatRelative(entry.createdAt)}</p>
+          <p className="text-sm text-soft">
+            {formatRelative(entry.createdAt)}
+            {entry.actorRoles ? ` · como ${entry.actorRoles}` : null}
+          </p>
           {entry.note ? <p className="text-sm text-soft italic">“{entry.note}”</p> : null}
           {entry.changes ? (
             <details className="mt-1 text-sm text-soft">

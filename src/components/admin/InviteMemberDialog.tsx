@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { Ministry } from "@/generated/prisma/client";
 import { FormField, fieldInputClass } from "@/components/admin/FormField";
@@ -16,9 +16,8 @@ import { inviteMember, type StaffActionState } from "@/lib/actions/staff";
 import { useFormSubmit } from "@/lib/use-form-submit";
 
 const ROLE_OPTIONS = [
-  { value: "ADMIN", label: "Admin", hint: "Acesso total ao painel, inclusive equipe e auditoria" },
-  { value: "MIDIA", label: "Mídia", hint: "Publica e edita conteúdo de qualquer ministério" },
-  { value: "LIDER", label: "Líder", hint: "Cria e envia conteúdo do ministério dele para aprovação" },
+  { value: "ADMIN", label: "Admin", hint: "Tudo do painel. É o único que mexe em Equipe (convites e papéis)." },
+  { value: "MIDIA", label: "Mídia (cuida do site)", hint: "Quase tudo do Admin: o site (conteúdo, imagens, aparência), aprovações, escala e voluntários de todos os ministérios e Auditoria. Só não mexe em Equipe." },
 ] as const;
 
 export function InviteMemberDialog({
@@ -34,19 +33,23 @@ export function InviteMemberDialog({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [roles, setRoles] = useState<string[]>([]);
-  const [state, formAction, pending] = useActionState<StaffActionState, FormData>(inviteMember, undefined);
-  const { formProps, fieldErrors } = useFormSubmit(state, formAction);
-
-  useEffect(() => {
-    if (open && state && !state.error) {
+  const [leaderOf, setLeaderOf] = useState<string[]>([]);
+  // Fecha e mostra o "enviado" direto no fim do envio (sem useEffect).
+  const action = async (prev: StaffActionState, formData: FormData) => {
+    const result = await inviteMember(prev, formData);
+    if (result && !result.error) {
       setOpen(false);
       setRoles([]);
+      setLeaderOf([]);
       router.push(`${pathname}?saved=invite`);
     }
-  }, [state, open, router, pathname]);
+    return result;
+  };
+  const [state, formAction, pending] = useActionState<StaffActionState, FormData>(action, undefined);
+  const { formProps, fieldErrors } = useFormSubmit(state, formAction);
 
-  function toggleRole(value: string) {
-    setRoles((prev) => (prev.includes(value) ? prev.filter((r) => r !== value) : [...prev, value]));
+  function toggle(list: string[], value: string) {
+    return list.includes(value) ? list.filter((r) => r !== value) : [...list, value];
   }
 
   return (
@@ -81,7 +84,7 @@ export function InviteMemberDialog({
                     name="roles"
                     value={option.value}
                     checked={roles.includes(option.value)}
-                    onChange={() => toggleRole(option.value)}
+                    onChange={() => setRoles((prev) => toggle(prev, option.value))}
                     className="mt-1 size-4 accent-ink"
                   />
                   <span className="flex flex-col">
@@ -93,28 +96,36 @@ export function InviteMemberDialog({
             </div>
           </FormField>
 
-          {roles.includes("LIDER") ? (
-            <FormField label="Ministério do líder" htmlFor="ministryId" error={fieldErrors?.ministryId}>
-              <select
-                id="ministryId"
-                name="ministryId"
-                className={fieldInputClass(!!fieldErrors?.ministryId)}
-                required
-              >
-                <option value="">Escolha um ministério</option>
-                {ministries.map((ministry) => (
-                  <option key={ministry.id} value={ministry.id}>
-                    {ministry.name}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-          ) : null}
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1 text-sm font-extrabold">Líder de ministério</legend>
+            <p className="text-sm text-soft">
+              Marque os ministérios que a pessoa lidera. Ela cuida de tudo deles (voluntários, antecedentes, escala,
+              inscrições) e envia eventos e avisos para a Mídia aprovar. Não mexe na cara do site.
+            </p>
+            <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+              {ministries.map((ministry) => (
+                <label
+                  key={ministry.id}
+                  className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border-2 border-line px-4 py-2 text-[15px] font-bold has-[:checked]:border-ink"
+                >
+                  <input
+                    type="checkbox"
+                    name="leaderOf"
+                    value={ministry.id}
+                    checked={leaderOf.includes(ministry.id)}
+                    onChange={() => setLeaderOf((prev) => toggle(prev, ministry.id))}
+                    className="size-4 accent-ink"
+                  />
+                  Líder · {ministry.name}
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
           <DialogFooter>
             <button
               type="submit"
-              disabled={pending || roles.length === 0}
+              disabled={pending || roles.length + leaderOf.length === 0}
               className="rounded-full bg-ink px-6 py-3 text-[15px] font-extrabold text-paper disabled:opacity-50"
             >
               Enviar convite

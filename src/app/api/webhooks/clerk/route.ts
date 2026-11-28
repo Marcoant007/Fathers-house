@@ -2,6 +2,7 @@ import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { ROLE_LABELS } from "@/lib/access";
 import type { Role } from "@/generated/prisma/client";
 
 const ROLE_VALUES = new Set<Role>(["ADMIN", "MIDIA", "LIDER"]);
@@ -54,6 +55,13 @@ export async function POST(req: NextRequest) {
             });
             if (existing) continue;
 
+            // Ministério apagado entre o convite e o aceite: pula esse papel em vez
+            // de falhar a transação (e o Clerk ficar repetindo o webhook).
+            const ministry = pending.ministryId
+              ? await tx.ministry.findUnique({ where: { id: pending.ministryId }, select: { name: true } })
+              : null;
+            if (pending.ministryId && !ministry) continue;
+
             await tx.staffRole.create({
               data: { staffMemberId: member.id, role: pending.role, ministryId: pending.ministryId },
             });
@@ -63,7 +71,7 @@ export async function POST(req: NextRequest) {
                 entityType: "STAFF_MEMBER",
                 entityId: member.id,
                 entityLabel: member.name,
-                note: `Papel do convite aceito — ${pending.role}`,
+                note: `Papel do convite aceito — ${ROLE_LABELS[pending.role]}${ministry ? ` (${ministry.name})` : ""}`,
                 actorId: member.id,
                 actorClerkId: member.clerkUserId,
                 actorName: member.name,

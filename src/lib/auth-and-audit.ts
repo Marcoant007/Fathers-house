@@ -6,8 +6,15 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import type { AuditAction, AuditEntity, Prisma, Role } from "@/generated/prisma/client";
+import { describeRoles, diff, hasRole, isEditor } from "@/lib/access";
+
+// Regras puras ficam em access.ts (testáveis); reexportadas pra quem já importa daqui.
+export { canManageMinistry, canWriteContent, describeRoles, diff, hasRole, isEditor, isLeader, ROLE_LABELS } from "@/lib/access";
 
 export type Actor = Awaited<ReturnType<typeof getActor>>;
+
+// Papéis com o nome do ministério, pra mostrar "Líder (Kids)" e não só "Líder".
+const ROLES_INCLUDE = { roles: { include: { ministry: { select: { name: true } } } } } as const;
 
 /** Pessoa logada + papéis. Cria o StaffMember no primeiro acesso, se o webhook ainda não criou. */
 export async function getActor() {
@@ -16,7 +23,7 @@ export async function getActor() {
 
   let member = await prisma.staffMember.findUnique({
     where: { clerkUserId: userId },
-    include: { roles: true },
+    include: ROLES_INCLUDE,
   });
 
   if (!member) {
@@ -28,26 +35,11 @@ export async function getActor() {
         email: u?.primaryEmailAddress?.emailAddress ?? `${userId}@sem-email`,
         imageUrl: u?.imageUrl,
       },
-      include: { roles: true },
+      include: ROLES_INCLUDE,
     });
   }
   if (!member.active) throw new Error("Acesso desativado");
   return member;
-}
-
-export const hasRole = (actor: Actor, role: Role, ministryId?: string | null) =>
-  actor.roles.some((r) => r.role === "ADMIN") ||
-  actor.roles.some((r) => r.role === role && (ministryId === undefined || r.ministryId === ministryId));
-
-export const isEditor = (actor: Actor) => hasRole(actor, "MIDIA");
-
-const ROLE_LABELS: Record<Role, string> = { ADMIN: "Admin", MIDIA: "Mídia", LIDER: "Líder" };
-
-/** Rótulo pra exibir na Sidebar/Equipe: "Admin · Líder" ou "Sem papel atribuído". */
-export function describeRoles(actor: Actor): string {
-  if (actor.roles.length === 0) return "Sem papel atribuído";
-  const unique = Array.from(new Set(actor.roles.map((r) => r.role)));
-  return unique.map((r) => ROLE_LABELS[r]).join(" · ");
 }
 
 /** Lança erro se a pessoa não tiver nenhum dos papéis pedidos. */
@@ -55,18 +47,6 @@ export async function requireRole(...roles: Role[]) {
   const actor = await getActor();
   if (!roles.some((r) => hasRole(actor, r))) throw new Error("Sem permissão");
   return actor;
-}
-
-/** Diferença campo a campo entre antes e depois, para o UPDATE. */
-export function diff(before: Record<string, unknown>, after: Record<string, unknown>) {
-  const changes: Record<string, { from: unknown; to: unknown }> = {};
-  for (const key of Object.keys(after)) {
-    if (["updatedAt", "updatedById"].includes(key)) continue;
-    const a = JSON.stringify(before[key] ?? null);
-    const b = JSON.stringify(after[key] ?? null);
-    if (a !== b) changes[key] = { from: before[key] ?? null, to: after[key] ?? null };
-  }
-  return changes;
 }
 
 type AuditInput = {
@@ -87,6 +67,7 @@ export async function audit(tx: Prisma.TransactionClient, actor: Actor, input: A
       actorId: actor.id,
       actorClerkId: actor.clerkUserId,
       actorName: actor.name,
+      actorRoles: describeRoles(actor),
       ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
       userAgent: h.get("user-agent"),
     },

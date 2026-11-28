@@ -73,15 +73,22 @@ export function AnnouncementForm({
         </FormField>
 
         <FormField label="Imagem">
-          <ImageDrop
-            value={imagePath}
-            name="imagePath"
-            pathPrefix="avisos"
-            onChange={(url) => {
-              setImagePath(url);
-              setPreview((p) => ({ ...p, imagePath: url }));
-            }}
-          />
+          {isEditor ? (
+            <ImageDrop
+              value={imagePath}
+              name="imagePath"
+              pathPrefix="avisos"
+              onChange={(url) => {
+                setImagePath(url);
+                setPreview((p) => ({ ...p, imagePath: url }));
+              }}
+            />
+          ) : (
+            <p className="rounded-xl bg-sand px-4 py-3 text-sm text-soft">
+              Quem coloca a imagem é a Mídia, pra o site ficar com a mesma cara. Envie a imagem pra ela pelo
+              WhatsApp e ela adiciona antes de publicar.
+            </p>
+          )}
         </FormField>
 
         <FormField label="Texto" htmlFor="body">

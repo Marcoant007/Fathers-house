@@ -1,6 +1,6 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
-import { getActor, isEditor, hasRole } from "@/lib/auth-and-audit";
+import { getActor, isEditor } from "@/lib/auth-and-audit";
 
 export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody;
@@ -11,8 +11,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       request,
       onBeforeGenerateToken: async () => {
         const actor = await getActor();
-        if (!isEditor(actor) && !hasRole(actor, "LIDER")) {
-          throw new Error("Sem permissão para subir imagens.");
+        // Imagem do site é com a Mídia: líder manda a imagem pra ela, não sobe direto.
+        if (!isEditor(actor)) {
+          throw new Error("Só a Mídia ou o admin colocam imagens no site.");
         }
         return {
           allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],

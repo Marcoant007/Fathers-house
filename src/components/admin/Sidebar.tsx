@@ -17,6 +17,8 @@ import {
   ClipboardList,
   Radio,
   HandHeart,
+  HeartHandshake,
+  CalendarCheck,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "cn";
@@ -31,18 +33,20 @@ const NAV_ITEMS: {
   show: (p: SidebarPermissions) => boolean;
 }[] = [
   { href: "/backstage", label: "Visão geral", icon: LayoutDashboard, show: () => true },
-  { href: "/backstage/eventos", label: "Eventos", icon: CalendarDays, show: () => true },
-  { href: "/backstage/avisos", label: "Avisos", icon: Megaphone, show: () => true },
-  { href: "/backstage/galeria", label: "Galeria", icon: Images, show: () => true },
+  { href: "/backstage/eventos", label: "Eventos", icon: CalendarDays, show: (p) => p.isEditor || p.isLeader },
+  { href: "/backstage/avisos", label: "Avisos", icon: Megaphone, show: (p) => p.isEditor || p.isLeader },
+  { href: "/backstage/galeria", label: "Galeria", icon: Images, show: (p) => p.isEditor },
   { href: "/backstage/live", label: "Live", icon: Radio, show: (p) => p.isEditor },
   { href: "/backstage/inscricoes", label: "Inscrições", icon: ClipboardList, show: (p) => p.isEditor || p.isLeader },
+  { href: "/backstage/escala", label: "Escala", icon: CalendarCheck, show: (p) => p.isEditor || p.isLeader },
+  { href: "/backstage/voluntarios", label: "Voluntários", icon: HeartHandshake, show: (p) => p.isEditor || p.isLeader },
   { href: "/backstage/projetos", label: "Projetos", icon: HandHeart, show: (p) => p.isEditor },
   { href: "/backstage/aparencia", label: "Aparência", icon: Palette, show: (p) => p.isEditor },
   { href: "/backstage/ministerios", label: "Ministérios", icon: Users, show: (p) => p.isEditor },
   { href: "/backstage/cultos", label: "Cultos", icon: Clock, show: (p) => p.isEditor },
   { href: "/backstage/tira-duvidas", label: "Tira-dúvidas", icon: MessageCircleQuestion, show: (p) => p.isEditor },
   { href: "/backstage/equipe", label: "Equipe", icon: UserCog, show: (p) => p.isAdmin },
-  { href: "/backstage/auditoria", label: "Auditoria", icon: History, show: (p) => p.isAdmin },
+  { href: "/backstage/auditoria", label: "Auditoria", icon: History, show: (p) => p.isEditor },
 ];
 
 export function Sidebar({

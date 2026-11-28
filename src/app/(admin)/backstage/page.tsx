@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getActor, describeRoles } from "@/lib/auth-and-audit";
 import { Panel } from "@/components/admin/Panel";
+import { WaitingForAccess } from "@/components/admin/WaitingForAccess";
 import { getUpcomingEvents } from "@/lib/queries/events";
 import { formatEventMoment } from "@/lib/format";
 
@@ -8,6 +9,7 @@ export const metadata: Metadata = { title: "Painel" };
 
 export default async function AdminHomePage() {
   const actor = await getActor();
+  if (actor.roles.length === 0) return <WaitingForAccess />;
   const upcoming = await getUpcomingEvents(5);
 
   return (
@@ -16,15 +18,6 @@ export default async function AdminHomePage() {
         <h1 className="text-2xl font-extrabold">Olá, {actor.name.split(" ")[0]}</h1>
         <p className="text-soft">{describeRoles(actor)}</p>
       </div>
-
-      {actor.roles.length === 0 ? (
-        <Panel className="border-accent/40 bg-accent/10">
-          <p className="text-[15px] text-ink">
-            Você ainda não tem nenhum papel atribuído — um admin precisa te dar acesso em{" "}
-            <b>Equipe</b> antes de você poder criar ou editar conteúdo.
-          </p>
-        </Panel>
-      ) : null}
 
       <Panel className="flex flex-col gap-4">
         <h2 className="text-lg font-extrabold">Próximos eventos</h2>

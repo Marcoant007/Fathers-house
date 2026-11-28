@@ -1,9 +1,10 @@
-import { getActor, hasRole, describeRoles } from "@/lib/auth-and-audit";
+import { getActor, hasRole, describeRoles, isLeader } from "@/lib/auth-and-audit";
 import { isPanelVerified } from "@/lib/panel-gate";
 import { countNewRegistrations } from "@/lib/registrations";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { PanelGateScreen } from "@/components/admin/PanelGateScreen";
 import { Toaster } from "@/components/ui/sonner";
+import { WaitingForAccess } from "@/components/admin/WaitingForAccess";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const actor = await getActor();
@@ -15,13 +16,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const permissions = {
     isAdmin: hasRole(actor, "ADMIN"),
     isEditor: hasRole(actor, "MIDIA"),
-    isLeader: actor.roles.some((r) => r.role === "LIDER"),
+    isLeader: isLeader(actor),
   };
   const newRegistrations = await countNewRegistrations(actor);
 
   return (
     <AdminShell actorName={actor.name} roleLabel={describeRoles(actor)} permissions={permissions} newRegistrations={newRegistrations}>
-      {children}
+      {actor.roles.length > 0 ? children : <WaitingForAccess />}
       <Toaster position="bottom-right" />
     </AdminShell>
   );

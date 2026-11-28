@@ -43,6 +43,7 @@
   --color-soft-dark: #BDBDB8;
   --color-success: #1F6B45;
   --color-danger: #B42318;
+  --color-warning: #A15C07;
 
   /* Destaque dinâmico */
   --color-accent: var(--accent);

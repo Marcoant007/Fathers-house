@@ -26,23 +26,26 @@ export async function inviteMember(_prev: StaffActionState, formData: FormData):
   const parsed = inviteMemberSchema.safeParse({
     email: String(formData.get("email") ?? ""),
     roles: formData.getAll("roles").map(String),
-    ministryId: String(formData.get("ministryId") ?? ""),
+    leaderOf: formData.getAll("leaderOf").map(String),
   });
   if (!parsed.success) return { error: "Confira os campos.", fieldErrors: flatten(parsed.error) };
   const data = parsed.data;
 
   const actor = await getActor();
 
-  const pendingRoles = data.roles.map((role) => ({
-    role,
-    ministryId: role === "LIDER" ? data.ministryId : null,
-  }));
+  const ministries = data.leaderOf.length
+    ? await prisma.ministry.findMany({ where: { id: { in: data.leaderOf } }, select: { id: true, name: true } })
+    : [];
+  if (ministries.length !== data.leaderOf.length) return { error: "Algum ministério escolhido não existe mais." };
 
-  let ministryName: string | null = null;
-  if (data.ministryId) {
-    const ministry = await prisma.ministry.findUnique({ where: { id: data.ministryId } });
-    ministryName = ministry?.name ?? null;
-  }
+  const pendingRoles: { role: Role; ministryId: string | null }[] = [
+    ...data.roles.map((role) => ({ role, ministryId: null })),
+    ...ministries.map((m) => ({ role: "LIDER" as const, ministryId: m.id })),
+  ];
+  const rolesNote = [
+    ...data.roles.map((r) => ROLE_LABELS[r]),
+    ...ministries.map((m) => `${ROLE_LABELS.LIDER} (${m.name})`),
+  ].join(", ");
 
   try {
     const clerk = await clerkClient();
@@ -60,7 +63,7 @@ export async function inviteMember(_prev: StaffActionState, formData: FormData):
       entityType: "STAFF_MEMBER",
       entityId: data.email,
       entityLabel: data.email,
-      note: `Convite enviado — ${data.roles.map((r) => (r === "LIDER" ? `${ROLE_LABELS[r]} (${ministryName ?? "—"})` : ROLE_LABELS[r])).join(", ")}`,
+      note: `Convite enviado — ${rolesNote}`,
     });
   });
 
@@ -107,7 +110,7 @@ export async function grantRole(
       entityType: "STAFF_MEMBER",
       entityId: staffMemberId,
       entityLabel: member.name,
-      note: data.role === "LIDER" ? `${ROLE_LABELS[data.role]} — ${ministry?.name ?? "—"}` : ROLE_LABELS[data.role],
+      note: data.role === "LIDER" ? `${ROLE_LABELS[data.role]} (${ministry?.name ?? "—"})` : ROLE_LABELS[data.role],
     });
   });
 
@@ -135,7 +138,7 @@ export async function revokeRole(staffRoleId: string) {
       entityType: "STAFF_MEMBER",
       entityId: role.staffMemberId,
       entityLabel: role.staffMember.name,
-      note: role.role === "LIDER" ? `${ROLE_LABELS[role.role]} — ${role.ministry?.name ?? "—"}` : ROLE_LABELS[role.role],
+      note: role.role === "LIDER" ? `${ROLE_LABELS[role.role]} (${role.ministry?.name ?? "—"})` : ROLE_LABELS[role.role],
     });
   });
 

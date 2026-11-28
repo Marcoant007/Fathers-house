@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
-import { getActor, isEditor } from "@/lib/auth-and-audit";
+import { redirect } from "next/navigation";
+import { getActor, isEditor, canWriteContent } from "@/lib/auth-and-audit";
 import { getAdminAnnouncements } from "@/lib/queries/announcements";
 import { deleteAnnouncement } from "@/lib/actions/announcements";
 import { Panel } from "@/components/admin/Panel";
@@ -28,6 +29,7 @@ export default async function AvisosPage({
 }) {
   const { status } = await searchParams;
   const actor = await getActor();
+  if (!canWriteContent(actor)) redirect("/backstage");
   const statusFilter = (status as ContentStatus | undefined) ?? undefined;
   const announcements = await getAdminAnnouncements(actor, statusFilter);
   const editor = isEditor(actor);

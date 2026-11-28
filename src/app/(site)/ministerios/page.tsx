@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Eyebrow } from "@/components/site/Eyebrow";
 import { MinistryCard } from "@/components/site/MinistryCard";
-import { getMinistries } from "@/lib/queries/ministries";
+import { getPublicMinistries } from "@/lib/queries/ministries";
 
 export const metadata: Metadata = { title: "Ministérios" };
 
 export default async function MinisteriosPage() {
-  const ministries = await getMinistries();
+  const ministries = await getPublicMinistries();
 
   return (
     <section className="container-site flex flex-col gap-9 py-12 md:py-20">

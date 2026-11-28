@@ -21,7 +21,10 @@ export function visibleEventsWhere(actor: Actor): Prisma.EventWhereInput {
 }
 
 /** Pessoas já confirmadas (soma de partySize) — é isso que as vagas contam. */
-export async function takenSpots(eventId: string, tx: Prisma.TransactionClient = prisma): Promise<number> {
+export async function takenSpots(
+  eventId: string,
+  tx: Pick<Prisma.TransactionClient, "eventRegistration"> = prisma
+): Promise<number> {
   const result = await tx.eventRegistration.aggregate({
     where: { eventId, status: "CONFIRMED" },
     _sum: { partySize: true },

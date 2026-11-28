@@ -95,8 +95,12 @@ export default async function EquipePage() {
                         staffName={member.name}
                         roles={member.roles}
                         ministries={ministries}
-                        trigger={<Settings size={18} strokeWidth={2} aria-hidden="true" />}
-                        triggerClassName="flex size-9 items-center justify-center rounded-lg text-soft hover:bg-sand hover:text-ink"
+                        trigger={
+                          <span className="flex items-center gap-2">
+                            <Settings size={16} strokeWidth={2} aria-hidden="true" /> Mudar papéis
+                          </span>
+                        }
+                        triggerClassName="flex min-h-11 items-center rounded-full border-2 border-line px-4 text-sm font-extrabold text-ink hover:border-ink"
                       />
                       <ToggleActiveButton
                         staffMemberId={member.id}
@@ -112,6 +116,38 @@ export default async function EquipePage() {
           </table>
         )}
       </Panel>
+
+      <Panel className="flex flex-col gap-4">
+        <h2 className="text-lg font-extrabold">O que cada papel vê no painel</h2>
+        <dl className="grid grid-cols-1 gap-4 text-[15px] md:grid-cols-3">
+          {PROFILES.map((profile) => (
+            <div key={profile.role} className="flex flex-col gap-1.5 rounded-xl bg-sand p-4">
+              <dt className="font-extrabold">{profile.role}</dt>
+              <dd className="text-soft">{profile.text}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="text-sm text-soft">
+          Uma pessoa pode ter mais de um papel. Atenção: “Mídia” (o papel que cuida do site e quase tudo do painel) é
+          diferente de “Líder · Midia” (líder só da equipe de voluntários da mídia). Quem coordena a mídia normalmente
+          recebe os dois.
+        </p>
+      </Panel>
     </div>
   );
 }
+
+const PROFILES = [
+  {
+    role: "Admin",
+    text: "Tudo do painel. É o único que mexe em Equipe (convites e papéis).",
+  },
+  {
+    role: "Mídia (cuida do site)",
+    text: "Quase tudo do Admin: o site (conteúdo, imagens, aparência), aprovações, escala e voluntários de todos os ministérios e Auditoria. Só não mexe em Equipe.",
+  },
+  {
+    role: "Líder (de um ministério)",
+    text: "Tudo do ministério dele: voluntários (inclusive antecedentes), escala e inscrições. Cria eventos e avisos e envia para a Mídia aprovar. Não mexe na cara do site nem coloca imagens: manda pra Mídia.",
+  },
+];

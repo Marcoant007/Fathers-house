@@ -28,7 +28,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="pt-BR" className={montserrat.variable} style={vars}>
-      <body>
+      {/* suppressHydrationWarning: extensões do navegador (ex.: ColorZilla) põem atributos no <body>. */}
+      <body suppressHydrationWarning>
         <ClerkProvider localization={ptBR}>
           {children}
         </ClerkProvider>

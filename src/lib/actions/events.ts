@@ -7,6 +7,7 @@ import { closesAtFromDate } from "@/lib/registration-rules";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
 import { deleteBlobIfExists } from "@/lib/blob";
+import { refreshRosterForDates } from "@/lib/roster-sync";
 import type { Prisma } from "@/generated/prisma/client";
 
 async function uniqueSlug(title: string, ignoreId?: string): Promise<string> {
@@ -96,7 +97,7 @@ export async function createEvent(
         location: data.location || null,
         ...registrationData(data),
         categoryId: data.categoryId || null,
-        coverPath: data.coverPath || null,
+        coverPath: editor ? data.coverPath || null : null,
         ministryId: data.ministryId || null,
         isFeatured: editor ? data.isFeatured : false,
         status,
@@ -114,6 +115,7 @@ export async function createEvent(
     return created;
   });
 
+  if (status === "PUBLISHED") await refreshRosterForDates(actor, [event.startsAt]);
   revalidatePath("/", "layout");
   revalidatePath("/backstage/eventos");
   return {
@@ -139,6 +141,7 @@ export async function updateEvent(
   const data = parsed.data;
   const editor = isEditor(actor);
   let oldCoverPath: string | null = null;
+  let touched: Date[] = [];
 
   await prisma.$transaction(async (tx) => {
     const before = await tx.event.findUniqueOrThrow({ where: { id } });
@@ -168,7 +171,7 @@ export async function updateEvent(
         location: data.location || null,
         ...registrationData(data),
         categoryId: data.categoryId || null,
-        coverPath: data.coverPath || null,
+        coverPath: editor ? data.coverPath || null : before.coverPath,
         ministryId: data.ministryId || null,
         isFeatured: editor ? data.isFeatured : before.isFeatured,
         status,
@@ -181,6 +184,7 @@ export async function updateEvent(
     if (before.coverPath && before.coverPath !== after.coverPath) {
       oldCoverPath = before.coverPath;
     }
+    if (before.status === "PUBLISHED" || after.status === "PUBLISHED") touched = [before.startsAt, after.startsAt];
 
     await audit(tx, actor, {
       action: before.status !== "PUBLISHED" && after.status === "PUBLISHED" ? "PUBLISH" : "UPDATE",
@@ -192,6 +196,7 @@ export async function updateEvent(
   });
 
   await deleteBlobIfExists(oldCoverPath);
+  await refreshRosterForDates(actor, touched);
 
   revalidatePath("/", "layout");
   revalidatePath("/backstage/eventos");
@@ -205,7 +210,7 @@ export async function approveEvent(id: string) {
   const actor = await getActor();
   if (!isEditor(actor)) throw new Error("Só a mídia/admin aprova eventos.");
 
-  await prisma.$transaction(async (tx) => {
+  const startsAt = await prisma.$transaction(async (tx) => {
     const before = await tx.event.findUniqueOrThrow({ where: { id } });
     const after = await tx.event.update({
       where: { id },
@@ -218,8 +223,10 @@ export async function approveEvent(id: string) {
       entityLabel: after.title,
       changes: diff(before, after) as Prisma.InputJsonValue,
     });
+    return after.startsAt;
   });
 
+  await refreshRosterForDates(actor, [startsAt]);
   revalidatePath("/", "layout");
   revalidatePath("/backstage/eventos");
 }
@@ -229,7 +236,7 @@ export async function rejectEvent(id: string, note: string) {
   if (!isEditor(actor)) throw new Error("Só a mídia/admin devolve eventos.");
   if (!note.trim()) throw new Error("Explica pro líder o motivo da devolução.");
 
-  await prisma.$transaction(async (tx) => {
+  const wasPublished = await prisma.$transaction(async (tx) => {
     const before = await tx.event.findUniqueOrThrow({ where: { id } });
     const after = await tx.event.update({
       where: { id },
@@ -242,8 +249,10 @@ export async function rejectEvent(id: string, note: string) {
       entityLabel: after.title,
       note: note.trim(),
     });
+    return before.status === "PUBLISHED" ? before.startsAt : null;
   });
 
+  await refreshRosterForDates(actor, [wasPublished]);
   revalidatePath("/backstage/eventos");
 }
 
@@ -264,6 +273,7 @@ export async function deleteEvent(id: string) {
   });
 
   await deleteBlobIfExists(before.coverPath);
+  if (before.status === "PUBLISHED") await refreshRosterForDates(actor, [before.startsAt]);
 
   revalidatePath("/", "layout");
   revalidatePath("/backstage/eventos");

@@ -87,15 +87,22 @@ export function EventForm({
         </FormField>
 
         <FormField label="Capa">
-          <ImageDrop
-            value={coverPath}
-            name="coverPath"
-            pathPrefix="eventos"
-            onChange={(url) => {
-              setCoverPath(url);
-              setPreview((p) => ({ ...p, coverPath: url }));
-            }}
-          />
+          {isEditor ? (
+            <ImageDrop
+              value={coverPath}
+              name="coverPath"
+              pathPrefix="eventos"
+              onChange={(url) => {
+                setCoverPath(url);
+                setPreview((p) => ({ ...p, coverPath: url }));
+              }}
+            />
+          ) : (
+            <p className="rounded-xl bg-sand px-4 py-3 text-sm text-soft">
+              Quem coloca a imagem é a Mídia, pra o site ficar com a mesma cara. Envie a imagem pra ela pelo
+              WhatsApp e ela adiciona antes de publicar.
+            </p>
+          )}
         </FormField>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

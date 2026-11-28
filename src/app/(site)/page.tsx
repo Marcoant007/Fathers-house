@@ -12,7 +12,7 @@ import { GivingSection } from "@/components/site/GivingSection";
 import { getServices } from "@/lib/queries/services";
 import { getTickerEvents, getUpcomingEvents } from "@/lib/queries/events";
 import { getActiveAnnouncements } from "@/lib/queries/announcements";
-import { getMinistries } from "@/lib/queries/ministries";
+import { getPublicMinistries } from "@/lib/queries/ministries";
 import { getSiteSettings } from "@/lib/queries/site-settings";
 import { getFeaturedLive } from "@/lib/queries/live";
 import { getVisibleGivingProjects } from "@/lib/queries/giving-projects";
@@ -29,7 +29,7 @@ export default async function Home() {
     getServices(),
     getUpcomingEvents(3),
     getActiveAnnouncements(2),
-    getMinistries(),
+    getPublicMinistries(),
     getSiteSettings(),
     getFeaturedLive(),
     getTickerEvents(),

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getActor, hasRole, isEditor } from "@/lib/auth-and-audit";
+import { redirect } from "next/navigation";
+import { getActor, hasRole, isEditor, canWriteContent } from "@/lib/auth-and-audit";
 import { AnnouncementForm } from "@/components/admin/AnnouncementForm";
 import { getAllCategories } from "@/lib/queries/categories";
 import { getMinistries } from "@/lib/queries/ministries";
@@ -8,6 +9,7 @@ export const metadata: Metadata = { title: "Novo aviso" };
 
 export default async function NovoAvisoPage() {
   const actor = await getActor();
+  if (!canWriteContent(actor)) redirect("/backstage");
   const editor = isEditor(actor);
   const [categories, allMinistries] = await Promise.all([getAllCategories(), getMinistries()]);
 

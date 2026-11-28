@@ -19,7 +19,7 @@ export async function getAssistantKnowledge(): Promise<AssistantKnowledge> {
       orderBy: { startsAt: "asc" },
       take: 40,
     }),
-    prisma.ministry.findMany({ orderBy: { sortOrder: "asc" } }),
+    prisma.ministry.findMany({ where: { showOnSite: true }, orderBy: { sortOrder: "asc" } }),
     prisma.faqEntry.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }),
     prisma.siteSettings.findUnique({ where: { id: 1 } }),
     getFeaturedLive(now),

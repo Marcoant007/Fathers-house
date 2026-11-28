@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { hasRole, isEditor, describeRoles, diff, type Actor } from "./auth-and-audit";
+import { canManageMinistry, canWriteContent, hasRole, isEditor, isLeader, describeRoles, diff, type RoleHolder } from "./access";
 
-function actorWith(roles: { role: "ADMIN" | "MIDIA" | "LIDER"; ministryId: string | null }[]): Actor {
-  return { roles } as Actor;
+// ministryId serve de nome do ministério nos testes ("Jovens" → "Líder (Jovens)").
+function actorWith(roles: { role: "ADMIN" | "MIDIA" | "LIDER"; ministryId: string | null }[]): RoleHolder {
+  return { roles: roles.map((r) => ({ ...r, ministry: r.ministryId ? { name: r.ministryId } : null })) };
 }
 
 describe("hasRole", () => {
@@ -43,25 +44,46 @@ describe("isEditor", () => {
   });
 });
 
+describe("canManageMinistry", () => {
+  it("Mídia e Admin cuidam de todos os ministérios; líder só dos dele; sem papel, nenhum", () => {
+    expect(canManageMinistry(actorWith([{ role: "MIDIA", ministryId: null }]), "kids")).toBe(true);
+    expect(canManageMinistry(actorWith([{ role: "ADMIN", ministryId: null }]), "kids")).toBe(true);
+    expect(canManageMinistry(actorWith([{ role: "LIDER", ministryId: "kids" }]), "kids")).toBe(true);
+    expect(canManageMinistry(actorWith([{ role: "LIDER", ministryId: "midia" }]), "kids")).toBe(false);
+    expect(canManageMinistry(actorWith([]), "kids")).toBe(false);
+  });
+});
+
+describe("canWriteContent", () => {
+  it("lets Mídia, Admin and leaders write events/avisos, but nobody without a role", () => {
+    expect(canWriteContent(actorWith([]))).toBe(false);
+    expect(isLeader(actorWith([]))).toBe(false);
+    expect(canWriteContent(actorWith([{ role: "MIDIA", ministryId: null }]))).toBe(true);
+    expect(canWriteContent(actorWith([{ role: "ADMIN", ministryId: null }]))).toBe(true);
+    expect(canWriteContent(actorWith([{ role: "LIDER", ministryId: "kids" }]))).toBe(true);
+    expect(isLeader(actorWith([{ role: "LIDER", ministryId: null }]))).toBe(false);
+  });
+});
+
 describe("describeRoles", () => {
   it("flags an actor with no roles assigned", () => {
     expect(describeRoles(actorWith([]))).toBe("Sem papel atribuído");
   });
 
-  it("de-duplicates repeated roles across ministries", () => {
+  it("names the ministry of each leader role, in alphabetical order", () => {
     const multiMinistryLider = actorWith([
-      { role: "LIDER", ministryId: "jovens" },
-      { role: "LIDER", ministryId: "casais" },
+      { role: "LIDER", ministryId: "Jovens" },
+      { role: "LIDER", ministryId: "Casais" },
     ]);
-    expect(describeRoles(multiMinistryLider)).toBe("Líder");
+    expect(describeRoles(multiMinistryLider)).toBe("Líder (Casais) · Líder (Jovens)");
   });
 
-  it("joins distinct roles with a middle dot", () => {
+  it("lists global roles first, joined with a middle dot", () => {
     const editorAndLider = actorWith([
+      { role: "LIDER", ministryId: "Mídia" },
       { role: "MIDIA", ministryId: null },
-      { role: "LIDER", ministryId: "jovens" },
     ]);
-    expect(describeRoles(editorAndLider)).toBe("Mídia · Líder");
+    expect(describeRoles(editorAndLider)).toBe("Mídia · Líder (Mídia)");
   });
 });
 

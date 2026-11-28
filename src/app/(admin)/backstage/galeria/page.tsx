@@ -15,6 +15,9 @@ export const metadata: Metadata = { title: "Galeria" };
 export default async function GaleriaAdminPage() {
   const actor = await getActor();
   const editor = isEditor(actor);
+  if (!editor) {
+    return <p className="text-soft">A galeria é cuidada pela Mídia. Fotos do seu ministério? Mande pra ela.</p>;
+  }
   const [albums, events] = await Promise.all([getAlbums(), getUpcomingEvents(50)]);
 
   return (
